@@ -1,27 +1,2015 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>パーキンス式タイピング</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>パーキンス式 ひらがな入力</title>
+<style>
+  :root{font-family:system-ui,-apple-system,"Yu Gothic UI","Hiragino Kaku Gothic ProN",sans-serif;color-scheme:light dark}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:Canvas;color:CanvasText}
+  .wrap{width:min(1020px,100%);margin:auto;padding:20px}
+  h1{font-size:clamp(1.6rem,4vw,2.5rem);margin:.2rem 0 .4rem}
+  .lead{font-size:1.05rem;line-height:1.65;margin:0 0 14px}
+  .panel{border:2px solid color-mix(in srgb, CanvasText 28%, transparent);border-radius:18px;padding:16px;margin:14px 0;background:color-mix(in srgb, Canvas 94%, CanvasText 6%)}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  button,select{font:inherit;font-weight:700;border:2px solid currentColor;border-radius:12px;padding:.65rem .9rem;background:Canvas;color:CanvasText}
+  button{cursor:pointer}
+  button:focus-visible,select:focus-visible,.capture:focus-visible{outline:4px solid Highlight;outline-offset:3px}
+  .capture{min-height:88px;border:3px dashed color-mix(in srgb, CanvasText 35%, transparent);border-radius:14px;padding:14px;margin-top:12px;display:grid;place-items:center;text-align:center;font-weight:800;font-size:1.15rem;user-select:none}
+  .capture.active{border-style:solid;background:color-mix(in srgb, Highlight 12%, Canvas)}
+  .keys{display:grid;grid-template-columns:repeat(7,minmax(56px,1fr));gap:8px;margin-top:14px}
+  .key{border:2px solid color-mix(in srgb, CanvasText 35%, transparent);border-radius:12px;padding:10px 6px;text-align:center;min-height:72px;display:flex;flex-direction:column;justify-content:center;gap:2px;font-weight:800}
+  .key.down{background:Highlight;color:HighlightText;border-color:Highlight}
+  .dot{font-size:.85rem;font-weight:600;opacity:.8}
+  .output{width:100%;min-height:180px;resize:vertical;font:700 clamp(1.4rem,4vw,2.1rem)/1.6 system-ui,-apple-system,"Yu Gothic UI",sans-serif;padding:14px;border:2px solid color-mix(in srgb, CanvasText 35%, transparent);border-radius:14px;background:Canvas;color:CanvasText;caret-color:CanvasText}
+  .creator-credit{margin:28px 0 8px;text-align:center;font-size:.95rem;opacity:.72}
+  .status{font-size:1.15rem;font-weight:800;min-height:1.8em;margin:.5rem 0}
+  .braille-preview{font-size:2.5rem;line-height:1;margin:.35rem 0}
+  .help{line-height:1.75}
+  table{border-collapse:collapse;width:100%;font-size:.95rem}
+  th,td{border:1px solid color-mix(in srgb, CanvasText 28%, transparent);padding:7px;text-align:left}
+  kbd{font-family:ui-monospace,monospace;border:1px solid color-mix(in srgb, CanvasText 40%, transparent);border-bottom-width:3px;border-radius:6px;padding:.05rem .35rem;background:color-mix(in srgb, Canvas 88%, CanvasText 12%)}
+  .small{font-size:.9rem;opacity:.82;line-height:1.6}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .mode-tabs{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+  .mode-tabs button.active{background:Highlight;color:HighlightText;border-color:Highlight}
+  .hidden{display:none !important}
+  .practice-settings{display:grid;grid-template-columns:repeat(3,minmax(160px,1fr));gap:10px;margin:12px 0}
+  .practice-menu{text-align:center;padding:10px 0}
+  .practice-menu h3{font-size:clamp(1.6rem,5vw,2.6rem);margin:.4rem 0 1rem}
+  .choice-grid{display:grid;grid-template-columns:repeat(3,minmax(150px,1fr));gap:12px;margin:14px 0}
+  .choice-card{border:3px solid color-mix(in srgb, CanvasText 35%, transparent);border-radius:16px;padding:16px 10px;font-size:1.2rem;font-weight:900;min-height:120px;display:flex;flex-direction:column;justify-content:center;gap:6px}
+  .choice-key{font-size:2rem}.choice-dot{font-size:1.35rem}
+  .setup-summary{font-size:1.1rem;font-weight:800;line-height:1.7;margin:.7rem 0}
+  .setting{display:flex;flex-direction:column;gap:5px;font-weight:800}
+  .practice-card{border:3px solid color-mix(in srgb, Highlight 55%, CanvasText 20%);border-radius:18px;padding:18px;margin:14px 0;text-align:center}
+  .practice-focus{position:sticky;top:0;z-index:30;background:Canvas;border:3px solid Highlight;border-radius:16px;padding:10px 12px;margin:-6px -6px 14px;box-shadow:0 6px 18px color-mix(in srgb, CanvasText 18%, transparent)}
+  .practice-focus-title{font-size:.95rem;font-weight:900;opacity:.8;margin:0 0 2px}
+  .practice-focus .practice-current{margin:.05rem 0;font-size:clamp(2rem,7vw,3.8rem)}
+  .practice-focus .practice-braille{margin:.1rem 0}
+  .practice-focus .practice-braille-char{font-size:clamp(3rem,9vw,5.2rem)}
+  .practice-focus .practice-dots{margin:.15rem 0;font-size:clamp(1.35rem,4.5vw,2.4rem)}
+  .practice-focus .practice-keys{margin:.1rem 0;font-size:clamp(1.15rem,4vw,2rem)}
+  @media (max-height:700px){.practice-focus{padding:7px 10px}.practice-focus .dot-diagram{transform:scale(.86);transform-origin:center;margin:-5px auto}.practice-focus .practice-braille-note{display:none}}
+  .practice-word{font-size:clamp(2.4rem,8vw,4.8rem);font-weight:900;letter-spacing:.08em;margin:.2rem 0 .7rem}
+  .practice-current{font-size:clamp(1.8rem,6vw,3.4rem);font-weight:900;margin:.3rem 0}
+  .practice-dots{font-size:clamp(1.5rem,5vw,2.7rem);font-weight:900;margin:.35rem 0}
+  .practice-braille{display:flex;justify-content:center;align-items:center;gap:18px;flex-wrap:wrap;margin:.35rem 0 .65rem}
+  .practice-braille-char{font-family:"Segoe UI Symbol","Noto Sans Symbols 2",sans-serif;font-size:clamp(4rem,12vw,7rem);line-height:1;font-weight:700;letter-spacing:.08em}
+  .dot-diagram{display:grid;grid-template-columns:repeat(2,2.2rem);grid-template-rows:repeat(3,2.2rem);grid-auto-flow:column;gap:.18rem .7rem;align-items:center;justify-items:center;padding:.5rem .8rem;border:2px solid color-mix(in srgb, CanvasText 25%, transparent);border-radius:14px}
+  .dot-cell{font-size:1.8rem;line-height:1}.dot-cell.off{opacity:.22}
+  .practice-braille-note{font-size:.9rem;opacity:.78;margin-top:-.35rem;margin-bottom:.35rem}
+  .practice-keys{font-size:clamp(1.15rem,4vw,1.8rem);font-weight:800;margin:.35rem 0}
+  .practice-progress{font-size:1.08rem;font-weight:900;margin:.35rem 0}
+  .practice-answer{min-height:2.2em;font-size:clamp(1.5rem,5vw,2.4rem);font-weight:900;letter-spacing:.08em;margin:.5rem 0}
+  .session-end{font-size:clamp(1.5rem,5vw,2.4rem);font-weight:900;padding:1rem}
+  .keyboard-menu{border:3px solid color-mix(in srgb, Highlight 55%, CanvasText 20%);border-radius:18px;padding:18px;margin:14px 0;text-align:center}
+  .keyboard-menu h3{font-size:clamp(1.5rem,5vw,2.5rem);margin:.2rem 0 .8rem}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}.practice-settings{grid-template-columns:1fr}.choice-grid{grid-template-columns:1fr}.keys{grid-template-columns:repeat(3,1fr)}.key.space{grid-column:1/-1}}
+</style>
 </head>
-
 <body>
+<main class="wrap">
+  <h1>パーキンス式 ひらがな入力</h1>
+  <p class="lead"><kbd>S</kbd><kbd>D</kbd><kbd>F</kbd>＝③②①、<kbd>J</kbd><kbd>K</kbd><kbd>L</kbd>＝④⑤⑥。必要なキーを同時に押し、全部離すと1マス確定します。</p>
 
-<h1>パーキンス式タイピング</h1>
+  <div class="mode-tabs" role="tablist" aria-label="モード切り替え">
+    <button id="normalModeBtn" class="active" type="button" role="tab" aria-selected="true">通常入力</button>
+    <button id="practiceModeBtn" type="button" role="tab" aria-selected="false">練習モード</button>
+  </div>
 
-<p>
-視覚障害のある方のための、
-パーキンス式6点入力練習教材です。
-</p>
+  <section id="practicePanel" class="panel hidden" aria-labelledby="practiceTitle">
+    <h2 id="practiceTitle">練習モード</h2>
 
-<p>
-現在、教材を準備しています。
-</p>
+    <div id="practiceSetup" class="practice-menu">
+      <div id="setupStepTitle" class="practice-progress">文字数を選んでください</div>
+      <h3 id="setupQuestion">何文字の言葉を練習しますか？</h3>
+      <div id="setupChoices" class="choice-grid" aria-live="polite">
+        <div class="choice-card"><span class="choice-key">F</span><span class="choice-dot">①の点</span><span>2文字</span></div>
+        <div class="choice-card"><span class="choice-key">D</span><span class="choice-dot">②の点</span><span>3文字</span></div>
+        <div class="choice-card"><span class="choice-key">S</span><span class="choice-dot">③の点</span><span>4文字</span></div>
+      </div>
+      <div id="setupSummary" class="setup-summary">F・D・Sのどれかを押して選びます。</div>
+      <p class="small">すべてキーボードだけで設定できます。Backspaceで1つ前の選択へ戻る、Escapeで通常入力へ戻ります。</p>
+    </div>
 
-<p>
-<a href="../">教材室のトップページへ戻る</a>
-</p>
+    <div id="practiceGame" class="hidden">
+      <div id="practiceCard" class="practice-card" aria-live="polite">
+        <div class="practice-focus" id="practiceFocus">
+          <div class="practice-focus-title">いま入力する文字</div>
+          <div id="practiceCurrent" class="practice-current">---</div>
+          <div class="practice-focus-title">点字</div>
+          <div class="practice-braille" aria-label="点字の形">
+            <div id="practiceBraille" class="practice-braille-char">⠀</div>
+            <div id="practiceDotDiagram" class="dot-diagram" aria-hidden="true"></div>
+          </div>
+          <div id="practiceBrailleNote" class="practice-braille-note">入力する点字を表示します</div>
+          <div class="practice-focus-title">押す点番号</div>
+          <div id="practiceDots" class="practice-dots">---</div>
+          <div id="practiceKeys" class="practice-keys">---</div>
+        </div>
+        <div class="practice-progress" id="practiceProgress">練習を開始してください</div>
+        <div>おだい</div>
+        <div id="practiceWord" class="practice-word">---</div>
+        <div id="practiceBrailleSpellingNote" class="practice-braille-note">点字の表記規則に合わせて入力します</div>
+        <div>入力したことば</div>
+        <div id="practiceAnswer" class="practice-answer">---</div>
+      </div>
 
+      <div class="toolbar">
+        <button id="repeatGuideBtn" type="button">ことばをもう一度聞く</button>
+        <button id="hintBtn" type="button">ヒントを聞く</button>
+        <button id="newWordBtn" type="button">次の問題</button>
+        <button id="changePracticeBtn" type="button">設定を変える</button>
+      </div>
+
+      <div id="practiceEndMenu" class="keyboard-menu hidden" aria-live="polite">
+        <h3>練習終了</h3>
+        <div class="choice-grid">
+          <div class="choice-card"><span class="choice-key">F</span><span class="choice-dot">①の点</span><span>もう一度 同じ設定</span></div>
+          <div class="choice-card"><span class="choice-key">D</span><span class="choice-dot">②の点</span><span>難易度・設定を変える</span></div>
+          <div class="choice-card"><span class="choice-key">S</span><span class="choice-dot">③の点</span><span>フリー入力へ戻る</span></div>
+        </div>
+        <div class="setup-summary">F・D・Sのどれかを押して選びます。</div>
+      </div>
+
+      <p class="small">超基礎練習では、全押し「め」20回、あ〜ん、濁音・半濁音・拗音、句読点、数字、文章と分かち書きを練習できます。ことば練習では、まず普通の読み方で言葉を読み上げ、正解は日本語点字の表記規則に合わせます。5秒間入力がなければ音声でヒントを出します。</p>
+    </div>
+  </section>
+
+  <section id="normalPanel" class="panel" aria-labelledby="inputTitle">
+    <h2 id="inputTitle">入力</h2>
+    <div class="toolbar">
+      <button id="speakBtn" type="button" aria-pressed="true">読み上げ：オン</button>
+      <button id="clearBtn" type="button">全文クリア</button>
+      <button id="copyBtn" type="button">コピー</button>
+      <button id="pasteBtn" type="button">貼り付け</button>
+    </div>
+
+    <div id="writingModeBanner" class="keyboard-menu hidden" aria-live="polite">
+      <h3>文章を書くモード</h3>
+      <div class="setup-summary">「。」で今の1文を読み上げて自動改行　／　Enterで書いた全文を読み上げ　／　Escでフリー入力へ戻る</div>
+    </div>
+
+    <div id="practiceEntryPrompt" class="keyboard-menu hidden" aria-live="assertive">
+      <h3>練習モードに移りますか？</h3>
+      <div class="choice-grid">
+        <div class="choice-card"><span class="choice-key">F</span><span class="choice-dot">①の点</span><span>はい</span></div>
+        <div class="choice-card"><span class="choice-key">D</span><span class="choice-dot">②の点</span><span>いいえ</span></div>
+      </div>
+      <div class="setup-summary">F＝はい、D＝いいえ</div>
+    </div>
+
+    <div id="capture" class="capture" tabindex="0" role="application" aria-label="パーキンス式点字入力エリア。S D F J K Lキーを同時押しして入力します。">
+      自動入力中：S D F J K L を同時押しして入力
+    </div>
+
+    <div class="keys" aria-hidden="true">
+      <div class="key" data-key="s"><strong>S</strong><span class="dot">③</span></div>
+      <div class="key" data-key="d"><strong>D</strong><span class="dot">②</span></div>
+      <div class="key" data-key="f"><strong>F</strong><span class="dot">①</span></div>
+      <div class="key space"><strong>SPACE</strong><span class="dot">空白</span></div>
+      <div class="key" data-key="j"><strong>J</strong><span class="dot">④</span></div>
+      <div class="key" data-key="k"><strong>K</strong><span class="dot">⑤</span></div>
+      <div class="key" data-key="l"><strong>L</strong><span class="dot">⑥</span></div>
+    </div>
+
+    <div id="braillePreview" class="braille-preview" aria-hidden="true">⠀</div>
+    <div id="status" class="status" aria-live="polite">準備完了</div>
+
+    <label for="output"><strong>入力結果</strong></label>
+    <textarea id="output" class="output" spellcheck="false" aria-label="ひらがな入力結果"></textarea>
+    <div class="toolbar" style="margin-top:12px">
+      <button id="saveTextBtn" type="button">文章を保存</button>
+      <button id="loadTextBtn" type="button">テキストを読み込む</button>
+      <input id="loadTextInput" type="file" accept=".txt,text/plain" hidden>
+    </div>
+    <p class="small">フリー入力：Space＝空白、Backspace＝1文字削除、Enter＝改行して直前の行を読み上げ、H＝現在の行を読み上げ、G＝これまで書いた全文を読み上げ。長音符「ー」は入力時に「のばしぼう」と読み上げます。句点「。」を入力すると自動改行します。濁音符⑤・半濁音符⑥を押した直後はDeleteで前置符だけを取り消せます。外字符⑤⑥も英字を入力する前ならDeleteで取り消せます。⑤⑥（K＋L）→Spaceで読点「、」。⑤⑥のあとに点字を続けるとアルファベット入力、⑥を挟むと次の英字を大文字にします。英字入力はSpaceで終了します。下の「文章を保存」ボタン、またはX・C・V・M・,・. の6キー同時押しでテキスト保存。「テキストを読み込む」ボタンから保存済みの.txtファイルを読み込み、続きを編集できます。DKL（②⑤⑥＝「。」）を5回連続で入力すると文章を書くモードへ移ります。文章モードでは「。」でその1文を読み上げて自動改行、Enterで全文読み上げ、Escでフリー入力へ戻ります。</p>
+  </section>
+
+  <section class="grid2">
+    <div class="panel help">
+      <h2>キー配置</h2>
+      <pre style="font-size:1.05rem;line-height:1.7;white-space:pre-wrap">左手                 右手
+S  D  F      J  K  L
+③ ② ①      ④ ⑤ ⑥</pre>
+      <p>例：<strong>あ＝① → F</strong>、<strong>い＝①② → F+D</strong>、<strong>か＝①⑥ → F+L</strong>。</p>
+    </div>
+    <div class="panel help">
+      <h2>2マス文字</h2>
+      <p><strong>濁音：</strong>⑤を先に入力 → か行等（例：K → F+L ＝ が）</p>
+      <p><strong>半濁音：</strong>⑥を先に入力 → は行（例：L → F+S+L ＝ ぱ）</p>
+      <p><strong>拗音：</strong>④を先に入力 → 対応する「あ・う・お段」（例：J → F+L ＝ きゃ）</p>
+    </div>
+  </section>
+
+  <details class="panel">
+    <summary><strong>対応文字を見る</strong></summary>
+    <div style="overflow:auto;margin-top:12px">
+      <table>
+        <thead><tr><th>行</th><th>文字</th><th>点字の規則</th></tr></thead>
+        <tbody>
+          <tr><td>あ行</td><td>あ い う え お</td><td>① / ①② / ①④ / ①②④ / ②④</td></tr>
+          <tr><td>か行</td><td>か き く け こ</td><td>母音＋⑥</td></tr>
+          <tr><td>さ行</td><td>さ し す せ そ</td><td>母音＋⑤⑥</td></tr>
+          <tr><td>た行</td><td>た ち つ て と</td><td>母音＋③⑤</td></tr>
+          <tr><td>な行</td><td>な に ぬ ね の</td><td>母音＋③</td></tr>
+          <tr><td>は行</td><td>は ひ ふ へ ほ</td><td>母音＋③⑥</td></tr>
+          <tr><td>ま行</td><td>ま み む め も</td><td>母音＋③⑤⑥</td></tr>
+          <tr><td>や行</td><td>や ゆ よ</td><td>③④ / ③④⑥ / ③④⑤</td></tr>
+          <tr><td>ら行</td><td>ら り る れ ろ</td><td>母音＋⑤</td></tr>
+          <tr><td>その他</td><td>わ を ん っ ー 。</td><td>③ / ③⑤ / ③⑤⑥ / ② / ②⑤ / ②⑤⑥</td></tr>
+          <tr><td>読点</td><td>、</td><td>⑤⑥ → Space</td></tr>
+          <tr><td>外字符</td><td>アルファベット</td><td>⑤⑥ → 英字の点字（⑥で次を大文字）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</main>
+  <div class="creator-credit" aria-label="製作者 momomo">製作者：momomo</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const keyToDot = { s:3, d:2, f:1, j:4, k:5, l:6 };
+  const validKeys = new Set(Object.keys(keyToDot));
+
+  const base = {
+    '1':'あ','12':'い','14':'う','124':'え','24':'お',
+    '16':'か','126':'き','146':'く','1246':'け','246':'こ',
+    '156':'さ','1256':'し','1456':'す','12456':'せ','2456':'そ',
+    '135':'た','1235':'ち','1345':'つ','12345':'て','2345':'と',
+    '13':'な','123':'に','134':'ぬ','1234':'ね','234':'の',
+    '136':'は','1236':'ひ','1346':'ふ','12346':'へ','2346':'ほ',
+    '1356':'ま','12356':'み','13456':'む','123456':'め','23456':'も',
+    '34':'や','346':'ゆ','345':'よ',
+    '15':'ら','125':'り','145':'る','1245':'れ','245':'ろ',
+    '3':'わ','35':'を','356':'ん',
+    '2':'っ','25':'ー','256':'。'
+  };
+
+  // 外字符⑤⑥の後で使う6点式アルファベット。
+  // ⑤⑥直後のSpaceは読点「、」として確定するため、⑤⑥自体はbaseには入れない。
+  const latinBase = {
+    '1':'a','12':'b','14':'c','145':'d','15':'e',
+    '124':'f','1245':'g','125':'h','24':'i','245':'j',
+    '13':'k','123':'l','134':'m','1345':'n','135':'o',
+    '1234':'p','12345':'q','1235':'r','234':'s','2345':'t',
+    '136':'u','1236':'v','2456':'w','1346':'x','13456':'y','1356':'z'
+  };
+
+  const prefixNames = {'5':'濁音符','6':'半濁音符','4':'拗音符','45':'拗濁音符','46':'拗半濁音符'};
+  const voiced = {
+    'か':'が','き':'ぎ','く':'ぐ','け':'げ','こ':'ご',
+    'さ':'ざ','し':'じ','す':'ず','せ':'ぜ','そ':'ぞ',
+    'た':'だ','ち':'ぢ','つ':'づ','て':'で','と':'ど',
+    'は':'ば','ひ':'び','ふ':'ぶ','へ':'べ','ほ':'ぼ'
+  };
+  const semiVoiced = {'は':'ぱ','ひ':'ぴ','ふ':'ぷ','へ':'ぺ','ほ':'ぽ'};
+  const yoon = {
+    'か':'きゃ','く':'きゅ','こ':'きょ',
+    'さ':'しゃ','す':'しゅ','そ':'しょ',
+    'た':'ちゃ','つ':'ちゅ','と':'ちょ',
+    'な':'にゃ','ぬ':'にゅ','の':'にょ',
+    'は':'ひゃ','ふ':'ひゅ','ほ':'ひょ',
+    'ま':'みゃ','む':'みゅ','も':'みょ',
+    'ら':'りゃ','る':'りゅ','ろ':'りょ'
+  };
+  const yoonVoiced = {
+    'か':'ぎゃ','く':'ぎゅ','こ':'ぎょ',
+    'さ':'じゃ','す':'じゅ','そ':'じょ',
+    'た':'ぢゃ','つ':'ぢゅ','と':'ぢょ',
+    'は':'びゃ','ふ':'びゅ','ほ':'びょ'
+  };
+  const yoonSemi = {'は':'ぴゃ','ふ':'ぴゅ','ほ':'ぴょ'};
+
+  const capture = document.getElementById('capture');
+  const output = document.getElementById('output');
+  const saveTextBtn = document.getElementById('saveTextBtn');
+  const loadTextBtn = document.getElementById('loadTextBtn');
+  const loadTextInput = document.getElementById('loadTextInput');
+  const status = document.getElementById('status');
+  const preview = document.getElementById('braillePreview');
+  const startBtn = document.getElementById('startBtn');
+  const speakBtn = document.getElementById('speakBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const copyBtn = document.getElementById('copyBtn');
+  const pasteBtn = document.getElementById('pasteBtn');
+  const normalModeBtn = document.getElementById('normalModeBtn');
+  const practiceModeBtn = document.getElementById('practiceModeBtn');
+  const normalPanel = document.getElementById('normalPanel');
+  const practicePanel = document.getElementById('practicePanel');
+  const practiceSetup = document.getElementById('practiceSetup');
+  const practiceGame = document.getElementById('practiceGame');
+  const setupStepTitle = document.getElementById('setupStepTitle');
+  const setupQuestion = document.getElementById('setupQuestion');
+  const setupChoices = document.getElementById('setupChoices');
+  const setupSummary = document.getElementById('setupSummary');
+  const changePracticeBtn = document.getElementById('changePracticeBtn');
+  const newWordBtn = document.getElementById('newWordBtn');
+  const repeatGuideBtn = document.getElementById('repeatGuideBtn');
+  const hintBtn = document.getElementById('hintBtn');
+  const practiceProgress = document.getElementById('practiceProgress');
+  const practiceWord = document.getElementById('practiceWord');
+  const practiceBrailleSpellingNote = document.getElementById('practiceBrailleSpellingNote');
+  const practiceCurrent = document.getElementById('practiceCurrent');
+  const practiceDots = document.getElementById('practiceDots');
+  const practiceBraille = document.getElementById('practiceBraille');
+  const practiceDotDiagram = document.getElementById('practiceDotDiagram');
+  const practiceBrailleNote = document.getElementById('practiceBrailleNote');
+  const practiceKeys = document.getElementById('practiceKeys');
+  const practiceAnswer = document.getElementById('practiceAnswer');
+  const practiceFocus = document.getElementById('practiceFocus');
+  const practiceEndMenu = document.getElementById('practiceEndMenu');
+  const practiceEntryPrompt = document.getElementById('practiceEntryPrompt');
+  const writingModeBanner = document.getElementById('writingModeBanner');
+
+  let speakEnabled = true;
+  let held = new Set();
+  let chordDots = new Set();
+  let pendingPrefix = null;
+  let captureActive = false;
+  let spaceTimer = null;
+  let lastSpacePress = 0;
+  const doubleSpaceMs = 380;
+  let mode = 'normal';
+
+  let practiceWords = [];
+  let practiceIndex = 0;
+  let practiceUnitIndex = 0;
+  let practiceSolved = [];
+  let practicePrefixStep = 0;
+  let practiceQuestionHadMistake = false;
+  let practiceHintTimer = null;
+  let practiceRunning = false;
+  let practiceSetupStage = 'length';
+  let selectedPracticeLength = 3;
+  let selectedPracticeCount = 5;
+  let selectedPracticeType = 'mixed';
+  let practiceProgram = 'word'; // word / ultra
+  let ultraCourse = 'all';      // all / basic / special / punctuation / numbers / sentence
+  let audioCtx = null;
+  let freeMeStreak = 0;
+  let freeWritingTriggerStreak = 0;
+  let practiceEntryPromptOpen = false;
+
+  // 外字符⑤⑥によるアルファベット入力状態。
+  let latinMode = false;
+  let latinHasLetter = false;
+  let latinUpperNext = false;
+
+  // フリー入力・文章入力で使う保存ショートカット。
+  // 物理キー X C V M , . を6つ同時押しするとテキスト保存。
+  const saveChordCodes = new Set(['KeyX','KeyC','KeyV','KeyM','Comma','Period']);
+  const saveChordHeld = new Set();
+  let saveChordFired = false;
+
+  function dotsKey(dots){ return [...dots].sort((a,b)=>a-b).join(''); }
+  function brailleChar(dots){
+    let bits = 0;
+    for(const d of dots){ bits |= (1 << (d-1)); }
+    return String.fromCodePoint(0x2800 + bits);
+  }
+  function speak(text){
+    if(!speakEnabled || !('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ja-JP';
+    u.rate = 1.15;
+    speechSynthesis.speak(u);
+  }
+  function kanaForLiteralSpeech(text){
+    return text.replace(/[ぁ-ゖ]/g, ch => String.fromCharCode(ch.charCodeAt(0) + 0x60));
+  }
+  function speakInputText(text){ speak(kanaForLiteralSpeech(text)); }
+  function setStatus(text, say=false){ status.textContent = text; if(say) speak(text); }
+
+  function keepCaretVisible(){
+    // 点字入力では textarea 自体にフォーカスがないことがあるため、
+    // カーソル位置を基準に textarea 内部のスクロールを明示的に追従させる。
+    requestAnimationFrame(() => {
+      const pos = output.selectionStart ?? output.value.length;
+      const style = getComputedStyle(output);
+      const mirror = document.createElement('div');
+      const marker = document.createElement('span');
+
+      mirror.setAttribute('aria-hidden','true');
+      Object.assign(mirror.style, {
+        position:'absolute',
+        left:'-100000px',
+        top:'0',
+        visibility:'hidden',
+        boxSizing:style.boxSizing,
+        width:output.clientWidth + 'px',
+        minHeight:'0',
+        paddingTop:style.paddingTop,
+        paddingRight:style.paddingRight,
+        paddingBottom:style.paddingBottom,
+        paddingLeft:style.paddingLeft,
+        borderTopWidth:style.borderTopWidth,
+        borderRightWidth:style.borderRightWidth,
+        borderBottomWidth:style.borderBottomWidth,
+        borderLeftWidth:style.borderLeftWidth,
+        borderStyle:'solid',
+        fontFamily:style.fontFamily,
+        fontSize:style.fontSize,
+        fontWeight:style.fontWeight,
+        fontStyle:style.fontStyle,
+        letterSpacing:style.letterSpacing,
+        lineHeight:style.lineHeight,
+        textTransform:style.textTransform,
+        textIndent:style.textIndent,
+        whiteSpace:'pre-wrap',
+        overflowWrap:'break-word',
+        wordBreak:'break-word'
+      });
+
+      mirror.appendChild(document.createTextNode(output.value.slice(0,pos)));
+      // 行末・改行直後でも高さを取れる目印。
+      marker.textContent = '\u200b';
+      mirror.appendChild(marker);
+      document.body.appendChild(mirror);
+
+      const caretTop = marker.offsetTop;
+      const lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.6 || 32;
+      const padding = Math.max(8, parseFloat(style.paddingTop) || 0);
+      const visibleTop = output.scrollTop + padding;
+      const visibleBottom = output.scrollTop + output.clientHeight - padding;
+
+      if(caretTop < visibleTop){
+        output.scrollTop = Math.max(0, caretTop - padding);
+      }else if(caretTop + lineHeight > visibleBottom){
+        output.scrollTop = Math.max(0, caretTop + lineHeight - output.clientHeight + padding);
+      }
+
+      mirror.remove();
+
+      // 入力欄そのものが画面外へ出た場合も、近い位置まで戻す。
+      output.scrollIntoView({block:'nearest', inline:'nearest', behavior:'auto'});
+    });
+  }
+
+  function appendText(text){
+    const start = output.selectionStart ?? output.value.length;
+    const end = output.selectionEnd ?? output.value.length;
+    output.value = output.value.slice(0,start) + text + output.value.slice(end);
+    const pos = start + text.length;
+    output.setSelectionRange(pos,pos);
+    output.dispatchEvent(new Event('input',{bubbles:true}));
+    keepCaretVisible();
+  }
+  function backspace(){
+    const start = output.selectionStart ?? output.value.length;
+    const end = output.selectionEnd ?? output.value.length;
+    if(start !== end){
+      output.value = output.value.slice(0,start)+output.value.slice(end);
+      output.setSelectionRange(start,start);
+      output.dispatchEvent(new Event('input',{bubbles:true}));
+      keepCaretVisible();
+      return;
+    }
+    if(start <= 0) return;
+    const before = [...output.value.slice(0,start)];
+    before.pop();
+    const left = before.join('');
+    output.value = left + output.value.slice(start);
+    output.setSelectionRange(left.length,left.length);
+    output.dispatchEvent(new Event('input',{bubbles:true}));
+    keepCaretVisible();
+  }
+  function deleteForward(){
+    const start = output.selectionStart ?? output.value.length;
+    const end = output.selectionEnd ?? output.value.length;
+    if(start !== end){
+      output.value = output.value.slice(0,start) + output.value.slice(end);
+      output.setSelectionRange(start,start);
+      output.dispatchEvent(new Event('input',{bubbles:true}));
+      keepCaretVisible();
+      return true;
+    }
+    if(start >= output.value.length) return false;
+    const chars = Array.from(output.value.slice(start));
+    const removed = chars.shift();
+    output.value = output.value.slice(0,start) + chars.join('');
+    output.setSelectionRange(start,start);
+    output.dispatchEvent(new Event('input',{bubbles:true}));
+    keepCaretVisible();
+    return removed || true;
+  }
+
+  function cursorCharSpeech(ch){
+    if(ch === undefined || ch === null || ch === '') return '';
+    if(ch === '\n') return '改行';
+    if(ch === ' ') return '空白';
+    if(ch === '。') return '句点';
+    if(ch === '、') return '読点';
+    if(ch === 'ー') return 'のばしぼう';
+    return kanaForLiteralSpeech(ch);
+  }
+
+  function announceCursorPosition(){
+    const pos = output.selectionStart ?? 0;
+    const value = output.value;
+    let msg;
+    if(!value.length){
+      msg = 'カーソルわ、文のはじめにあります';
+    }else if(pos <= 0){
+      msg = `カーソルわ、文のはじめ、${cursorCharSpeech(value[0])}の前にあります`;
+    }else if(pos >= value.length){
+      msg = `カーソルわ、${cursorCharSpeech(value[value.length-1])}の後、文のおわりにあります`;
+    }else{
+      const left = cursorCharSpeech(value[pos-1]);
+      const right = cursorCharSpeech(value[pos]);
+      msg = `カーソルわ、${left}と${right}の間にあります`;
+    }
+    setStatus(msg.replace('わ、','は、'), false);
+    speak(msg);
+  }
+
+  function moveCursorByArrow(key){
+    const value = output.value;
+    let start = output.selectionStart ?? value.length;
+    let end = output.selectionEnd ?? start;
+    let pos = start;
+
+    if(start !== end){
+      if(key === 'ArrowLeft' || key === 'ArrowUp') pos = Math.min(start,end);
+      else pos = Math.max(start,end);
+    }else if(key === 'ArrowLeft'){
+      pos = Math.max(0, start - 1);
+    }else if(key === 'ArrowRight'){
+      pos = Math.min(value.length, start + 1);
+    }else if(key === 'ArrowUp'){
+      const lineStart = value.lastIndexOf('\n', Math.max(0,start-1)) + 1;
+      const col = start - lineStart;
+      if(lineStart > 0){
+        const prevEnd = lineStart - 1;
+        const prevStart = value.lastIndexOf('\n', Math.max(0,prevEnd-1)) + 1;
+        pos = prevStart + Math.min(col, prevEnd - prevStart);
+      }
+    }else if(key === 'ArrowDown'){
+      const lineStart = value.lastIndexOf('\n', Math.max(0,start-1)) + 1;
+      const col = start - lineStart;
+      const currentEnd = value.indexOf('\n', start);
+      if(currentEnd !== -1){
+        const nextStart = currentEnd + 1;
+        let nextEnd = value.indexOf('\n', nextStart);
+        if(nextEnd === -1) nextEnd = value.length;
+        pos = nextStart + Math.min(col, nextEnd - nextStart);
+      }
+    }
+
+    output.focus({preventScroll:true});
+    output.setSelectionRange(pos,pos);
+    keepCaretVisible();
+    announceCursorPosition();
+  }
+
+  function removeTriggerBeforeCaret(){
+    const trigger = 'めめめめめ';
+    const pos = output.selectionStart ?? output.value.length;
+    const start = Math.max(0, pos - trigger.length);
+    if(output.value.slice(start, pos) !== trigger) return;
+    output.value = output.value.slice(0,start) + output.value.slice(pos);
+    output.setSelectionRange(start,start);
+    output.dispatchEvent(new Event('input',{bubbles:true}));
+  }
+
+  function showPracticeEntryPrompt(){
+    practiceEntryPromptOpen = true;
+    freeMeStreak = 0;
+    removeTriggerBeforeCaret();
+    held.clear(); chordDots.clear(); updateVisuals();
+    captureActive = false;
+    capture.classList.remove('active');
+    practiceEntryPrompt.classList.remove('hidden');
+    setStatus('練習モードに移りますか？ Fは「はい」、Dは「いいえ」', false);
+    speak('練習モードに移りますか。はいはF、1の点。いいえはD、2の点。');
+  }
+
+  function closePracticeEntryPrompt(announce=true){
+    practiceEntryPromptOpen = false;
+    practiceEntryPrompt.classList.add('hidden');
+    held.clear(); chordDots.clear(); updateVisuals();
+    if(announce) speak('フリー入力を続けます');
+    activate();
+  }
+
+  function trackFreePracticeTrigger(ch){
+    if(mode !== 'normal') return;
+    if(ch === 'め') freeMeStreak += 1;
+    else freeMeStreak = 0;
+    if(freeMeStreak >= 5) showPracticeEntryPrompt();
+  }
+
+  function removeWritingTriggerBeforeCaret(){
+    // フリー入力では句点のたびに自動改行するため、
+    // 「。\n。\n。\n。\n。」の形でも5回連続の切替合図として取り除く。
+    const pos = output.selectionStart ?? output.value.length;
+    const before = output.value.slice(0,pos);
+    const match = before.match(/。\n?。\n?。\n?。\n?。$/);
+    if(!match) return;
+    const start = pos - match[0].length;
+    output.value = output.value.slice(0,start) + output.value.slice(pos);
+    output.setSelectionRange(start,start);
+    output.dispatchEvent(new Event('input',{bubbles:true}));
+    keepCaretVisible();
+  }
+
+  function enterWritingMode(){
+    removeWritingTriggerBeforeCaret();
+    mode = 'writing';
+    freeWritingTriggerStreak = 0;
+    freeMeStreak = 0;
+    pendingPrefix = null;
+    held.clear(); chordDots.clear(); updateVisuals();
+    practiceEntryPromptOpen = false;
+    practiceEntryPrompt.classList.add('hidden');
+    writingModeBanner.classList.remove('hidden');
+    normalModeBtn.textContent = '文章を書くモード';
+    capture.textContent = '文章を書くモード：S D F J K L を同時押し';
+    setStatus('文章を書くモードです。「。」で1文読み上げ、Enterで全文読み上げ', false);
+    speakInputText('文章をかくモードです。まるをにゅうりょくすると、そのぶんをはじめからよみあげて、つぎのぎょうへすすみます。エンターで、かいたすべてのぶんをよみあげます。');
+    activate();
+  }
+
+  function exitWritingMode(){
+    mode = 'normal';
+    freeWritingTriggerStreak = 0;
+    freeMeStreak = 0;
+    pendingPrefix = null;
+    writingModeBanner.classList.add('hidden');
+    normalModeBtn.textContent = '通常入力';
+    capture.textContent = '入力中：S D F J K L を同時押し';
+    setStatus('フリー入力に戻りました', false);
+    speakInputText('フリーにゅうりょくにもどりました');
+    activate();
+  }
+
+  function currentWritingSentence(){
+    const pos = output.selectionStart ?? output.value.length;
+    const upto = output.value.slice(0,pos);
+    const lineStart = upto.lastIndexOf('\n') + 1;
+    return upto.slice(lineStart);
+  }
+
+  function finishWritingSentence(){
+    const sentence = currentWritingSentence();
+    if(sentence) speakInputText(sentence);
+    appendText('\n');
+    setStatus('1文を読み上げて、次の行へ進みました', false);
+  }
+
+  function readAllWriting(){
+    const text = output.value.trimEnd();
+    if(text){
+      setStatus('書いたすべての文を読み上げています', false);
+      speakInputText(text);
+    }else{
+      setStatus('まだ文章はありません', true);
+    }
+  }
+
+  function currentFreeLine(){
+    const value = output.value;
+    const pos = output.selectionStart ?? value.length;
+    const start = value.lastIndexOf('\n', Math.max(0, pos - 1)) + 1;
+    let end = value.indexOf('\n', pos);
+    if(end < 0) end = value.length;
+    return value.slice(start, end).trimEnd();
+  }
+
+  function readCurrentFreeLine(){
+    const line = currentFreeLine();
+    if(line){
+      setStatus('現在の行を読み上げています', false);
+      speakInputText(line);
+    }else{
+      setStatus('現在の行には文字がありません', true);
+    }
+  }
+
+  function readAllFreeLines(){
+    const text = output.value.trimEnd();
+    if(text){
+      setStatus('これまで書いたすべての行を読み上げています', false);
+      speakInputText(text);
+    }else{
+      setStatus('まだ文章はありません', true);
+    }
+  }
+
+  function timestampFileName(){
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}年${pad(d.getMonth()+1)}月${pad(d.getDate())}日_${pad(d.getHours())}時${pad(d.getMinutes())}分${pad(d.getSeconds())}秒.txt`;
+  }
+
+  function fallbackDownloadText(text, filename){
+    const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function saveWrittenText(){
+    const text = output.value;
+    if(!text.trim()){
+      setStatus('保存する文章がありません', true);
+      return;
+    }
+    const filename = timestampFileName();
+    try{
+      if('showSaveFilePicker' in window){
+        const handle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          startIn: 'desktop',
+          types: [{
+            description: 'テキストファイル',
+            accept: {'text/plain': ['.txt']}
+          }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(text);
+        await writable.close();
+        setStatus(filename + ' として保存しました', false);
+        speakInputText('文章を保存しました');
+        activate();
+        return;
+      }
+      fallbackDownloadText(text, filename);
+      setStatus(filename + ' を保存しました', false);
+      speakInputText('文章を保存しました');
+      activate();
+    }catch(err){
+      if(err && err.name === 'AbortError'){
+        setStatus('保存を中止しました', false);
+        speakInputText('保存を中止しました');
+      }else{
+        // File System Access API が使えない場合は通常のダウンロード保存へ切り替える。
+        try{
+          fallbackDownloadText(text, filename);
+          setStatus(filename + ' をダウンロード保存しました', false);
+          speakInputText('文章を保存しました');
+        }catch(_){
+          setStatus('保存できませんでした', true);
+        }
+      }
+      activate();
+    }
+  }
+
+  saveTextBtn.addEventListener('click', () => {
+    saveWrittenText();
+  });
+
+
+  function resetInputModesAfterLoad(){
+    pendingPrefix = null;
+    latinMode = false;
+    latinHasLetter = false;
+    latinUpperNext = false;
+    freeMeStreak = 0;
+    freeWritingTriggerStreak = 0;
+    held.clear();
+    chordDots.clear();
+    updateVisuals();
+  }
+
+  async function loadTextFile(file){
+    if(!file) return;
+    try{
+      const text = await file.text();
+      if(output.value.length > 0){
+        const ok = window.confirm('現在の文章を、読み込んだテキストに置き換えますか？');
+        if(!ok){
+          setStatus('読み込みを中止しました', false);
+          loadTextInput.value = '';
+          activate();
+          return;
+        }
+      }
+      output.value = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      output.setSelectionRange(output.value.length, output.value.length);
+      output.dispatchEvent(new Event('input', {bubbles:true}));
+      resetInputModesAfterLoad();
+      keepCaretVisible();
+      setStatus(file.name + ' を読み込みました', false);
+      speakInputText('テキストを読み込みました');
+    }catch(err){
+      setStatus('テキストを読み込めませんでした', true);
+    }finally{
+      loadTextInput.value = '';
+      activate();
+    }
+  }
+
+  loadTextBtn.addEventListener('click', () => {
+    loadTextInput.value = '';
+    loadTextInput.click();
+  });
+
+  loadTextInput.addEventListener('change', () => {
+    const file = loadTextInput.files && loadTextInput.files[0];
+    loadTextFile(file);
+  });
+
+
+  function trackWritingModeTrigger(rawKey){
+    if(mode !== 'normal') return false;
+    if(rawKey === '256') freeWritingTriggerStreak += 1;
+    else freeWritingTriggerStreak = 0;
+    if(freeWritingTriggerStreak >= 5){
+      enterWritingMode();
+      return true;
+    }
+    return false;
+  }
+
+  function resolveWithPrefix(prefix, ch){
+    if(prefix === '5') return voiced[ch] || null;
+    if(prefix === '6') return semiVoiced[ch] || null;
+    if(prefix === '4') return yoon[ch] || null;
+    if(prefix === '45') return yoonVoiced[ch] || null;
+    if(prefix === '46') return yoonSemi[ch] || null;
+    return null;
+  }
+
+  const dotToKey = {1:'F',2:'D',3:'S',4:'J',5:'K',6:'L'};
+  const circled = {1:'①',2:'②',3:'③',4:'④',5:'⑤',6:'⑥'};
+
+  function makeCharSequences(){
+    const map = {};
+    for(const [dots,ch] of Object.entries(base)) map[ch] = [dots];
+    for(const [src,out] of Object.entries(voiced)){
+      const baseDots = Object.entries(base).find(([,c]) => c === src)?.[0];
+      if(baseDots) map[out] = ['5', baseDots];
+    }
+    for(const [src,out] of Object.entries(semiVoiced)){
+      const baseDots = Object.entries(base).find(([,c]) => c === src)?.[0];
+      if(baseDots) map[out] = ['6', baseDots];
+    }
+    for(const [src,out] of Object.entries(yoon)){
+      const baseDots = Object.entries(base).find(([,c]) => c === src)?.[0];
+      if(baseDots) map[out] = ['4', baseDots];
+    }
+    for(const [src,out] of Object.entries(yoonVoiced)){
+      const baseDots = Object.entries(base).find(([,c]) => c === src)?.[0];
+      if(baseDots) map[out] = ['45', baseDots];
+    }
+    for(const [src,out] of Object.entries(yoonSemi)){
+      const baseDots = Object.entries(base).find(([,c]) => c === src)?.[0];
+      if(baseDots) map[out] = ['46', baseDots];
+    }
+    return map;
+  }
+  const charSequences = makeCharSequences();
+
+  // 練習専用の点字単位。数字は数符③④⑤⑥のあとに数字のマスを続ける。
+  const practiceSpecialSequences = {
+    '数符':['3456'],
+    '数字1':['1'], '数字2':['12'], '数字3':['14'], '数字4':['145'], '数字5':['15'],
+    '数字6':['124'], '数字7':['1245'], '数字8':['125'], '数字9':['24'], '数字0':['245'],
+    '空白':['SPACE'],
+    '、':['56','SPACE']
+  };
+  function practiceSequenceForUnit(unit){ return practiceSpecialSequences[unit] || charSequences[unit] || []; }
+  function practiceDisplayForUnit(unit){
+    if(unit === '数符') return '数符';
+    if(unit === '空白') return '□';
+    if(unit.startsWith('数字')) return unit.slice(2);
+    return unit;
+  }
+
+  const combinedUnits = new Set([
+    ...Object.values(yoon), ...Object.values(yoonVoiced), ...Object.values(yoonSemi)
+  ]);
+
+  function dotsLabel(dots){ return [...dots].sort().map(d => circled[d]).join(''); }
+  function keysLabel(dots){ return [...dots].sort().map(d => dotToKey[d]).join(' + '); }
+  function brailleFromDotString(dots){ return brailleChar(new Set([...dots].map(Number))); }
+  function dotDiagramHTML(dots){
+    const on = new Set([...dots].map(Number));
+    return [1,2,3,4,5,6].map(n => `<span class="dot-cell ${on.has(n) ? '' : 'off'}" title="${n}の点">${on.has(n) ? '●' : '○'}</span>`).join('');
+  }
+
+  function unitsForWord(word){
+    const chars = [...word];
+    const units = [];
+    for(let i=0;i<chars.length;i++){
+      const pair = chars[i] + (chars[i+1] || '');
+      if(combinedUnits.has(pair) && charSequences[pair]){
+        units.push(pair);
+        i++;
+      }else{
+        units.push(chars[i]);
+      }
+    }
+    return units;
+  }
+  // 墨字のかな表記と、実際の日本語点字で入力するかな表記が異なる語。
+  // 点字では、かなで「う」と書く伸ばす音は長音符「ー」（②⑤）で表す。
+  const brailleSpellings = {
+    'ぞう':'ぞー',
+    'ぼう':'ぼー',
+    'すもう':'すもー',
+    'ぶどう':'ぶどー',
+    'きょう':'きょー',
+    'ぼうし':'ぼーし',
+    'ずこう':'ずこー',
+    'どうろ':'どーろ',
+    'ほうき':'ほーき',
+    'ひこうき':'ひこーき',
+    'ゆうやけ':'ゆーやけ',
+    'おとうと':'おとーと',
+    'いもうと':'いもーと',
+    'おはよう':'おはよー',
+    'びょうき':'びょーき',
+    'きょうし':'きょーし',
+    'きゅうり':'きゅーり',
+    'りょうり':'りょーり',
+    'じょうぎ':'じょーぎ',
+    'がっこう':'がっこー',
+    'しょうゆ':'しょーゆ',
+    'ぎょうざ':'ぎょーざ',
+    'ばんごう':'ばんごー',
+    'きょうか':'きょーか',
+    'さんすう':'さんすー',
+    'こうえん':'こーえん'
+  };
+
+  function itemForWord(word){
+    const brailleWord = brailleSpellings[word] || word;
+    const units = unitsForWord(brailleWord);
+    return {
+      word,
+      brailleWord,
+      units,
+      special: brailleWord !== word || units.some(u => (charSequences[u]?.length || 0) > 1 || u === 'っ' || u === 'ー')
+    };
+  }
+
+  const practiceBankWords = [
+    // 2文字：基本
+    'あめ','いぬ','ねこ','そら','もり','はな','うみ','くも','やま','つき','ほし','かさ','くつ','いえ','まど','みち','かわ','うし','うま','さる','とり','むし','なし','もも','すし','そば','こめ','ふね','たこ','いと','はこ','かお','こえ','あし','てら','まめ','ゆめ','そと','なか',
+    // 2文字：濁音・半濁音など
+    'みず','かぎ','ぱん','ぞう','ぶた','へび','かぜ','ひげ','ごま','ばら','ふじ','びわ','ぐみ','どあ','げた','ぴざ','ぴん','ばん','ぎん','ぼう',
+    // 3文字：基本
+    'さかな','きつね','たぬき','からす','すいか','みかん','とまと','たまご','くるま','はさみ','つくえ','こころ','ひかり','あさひ','なみだ','ことり','こあら','きもの','おかし','けむり','かえる','かもめ','こねこ','こいぬ','おとな','こども','おもち','あひる','いるか','さくら','すもう','やさい','きのこ','おさら','たおる','はたけ','こたつ',
+    // 3文字：濁音・半濁音・拗音など
+    'りんご','でんわ','うさぎ','めがね','ごりら','ぱんだ','ぶどう','だるま','きょう','ぴあの','ぼうし','げんき','でんき','だいず','きゃく','しゅみ','ちょき','ぎんか','がっき','ざっし','ばった','ぺんき','きっぷ','ずこう','どうろ','ほうき',
+    // 4文字：基本
+    'ひこうき','ひまわり','あさがお','やきいも','おりがみ','ものさし','あめふり','かみなり','おおあめ','ゆうやけ','たなばた','おまつり','やまみち','たけのこ','おとうと','いもうと','おはよう','あさやけ','たまいれ','かけあし','てあらい',
+    // 4文字：濁音・半濁音・拗音など
+    'おにぎり','えんぴつ','でんしゃ','びょうき','きょうし','きゅうり','しゃしん','りょうり','じょうぎ','ざぶとん','ぴーまん','がっこう','しょうゆ','ぎょうざ','びっくり','がいこく','だいこん','ばんごう','きょうか','あおぞら','うみかぜ','ほしぞら','なわとび','みずたま','さんすう','こうえん'
+  ];
+  const practiceBank = practiceBankWords.map(itemForWord).filter(item => item.units.every(u => charSequences[u]));
+
+  // 超基礎練習。順番を固定し、点字の形と指使いを反復して覚える。
+  const ultraBasicKana = unitsForWord('あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん');
+  const ultraSpecialKana = [
+    'が','ぎ','ぐ','げ','ご','ざ','じ','ず','ぜ','ぞ','だ','ぢ','づ','で','ど','ば','び','ぶ','べ','ぼ','ぱ','ぴ','ぷ','ぺ','ぽ',
+    'きゃ','きゅ','きょ','しゃ','しゅ','しょ','ちゃ','ちゅ','ちょ','にゃ','にゅ','にょ','ひゃ','ひゅ','ひょ','みゃ','みゅ','みょ','りゃ','りゅ','りょ',
+    'ぎゃ','ぎゅ','ぎょ','じゃ','じゅ','じょ','ぢゃ','ぢゅ','ぢょ','びゃ','びゅ','びょ','ぴゃ','ぴゅ','ぴょ'
+  ].filter(ch => charSequences[ch]);
+
+  const ultraPunctuation = [
+    {word:'読点', speech:'とうてん。読点、', brailleWord:'、', units:['、'], ultra:true, label:'読点「、」'},
+    {word:'句点', speech:'くてん。句点。', brailleWord:'。', units:['。'], ultra:true, label:'句点「。」'}
+  ];
+
+  function makeNumberPracticeItem(value){
+    const digits = [...String(value)];
+    return {
+      word:String(value),
+      speech:String(value),
+      brailleWord:`数符＋${digits.join('')}`,
+      units:['数符', ...digits.map(d => '数字'+d)],
+      ultra:true,
+      label:`数字 ${value}`
+    };
+  }
+  const ultraNumbers = [
+    ...['1','2','3','4','5','6','7','8','9','0'].map(makeNumberPracticeItem),
+    ...['10','12','25','40','58','100','2026'].map(makeNumberPracticeItem)
+  ];
+
+  function sentenceUnitsForBraille(spelling){
+    const chars = [...spelling];
+    const units = [];
+    for(let i=0;i<chars.length;i++){
+      if(chars[i] === '□' || chars[i] === ' '){ units.push('空白'); continue; }
+      const pair = chars[i] + (chars[i+1] || '');
+      if(combinedUnits.has(pair) && charSequences[pair]){ units.push(pair); i++; }
+      else units.push(chars[i]);
+    }
+    return units;
+  }
+  const ultraSentences = [
+    {word:'ぼくはほんやへいく。', brailleWord:'ぼくわ□ほんやえ□いく。'},
+    {word:'きょうはあさからよくはれている。', brailleWord:'きょーわ□あさから□よく□はれて□いる。'},
+    {word:'わたしはいぬがすき。', brailleWord:'わたしわ□いぬが□すき。'},
+    {word:'きょうはあめです。', brailleWord:'きょーわ□あめです。'},
+    {word:'おとうさんはほんをよむ。', brailleWord:'おとーさんわ□ほんを□よむ。'}
+  ].map((item,i) => ({...item, speech:item.word, units:sentenceUnitsForBraille(item.brailleWord), ultra:true, label:`文章 ${i+1}`}));
+
+  function shuffle(arr){
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]]=[arr[j],arr[i]];
+    }
+    return arr;
+  }
+
+  function setupChoiceCards(items){
+    setupChoices.innerHTML = items.map(item => `<div class="choice-card"><span class="choice-key">${item.key}</span><span class="choice-dot">${item.dot}</span><span>${item.label}</span></div>`).join('');
+  }
+
+  function showPracticeSetup(stage='program', announce=true){
+    clearPracticeHint();
+    practiceRunning = false;
+    practiceSetupStage = stage;
+    practiceSetup.classList.remove('hidden');
+    practiceGame.classList.add('hidden');
+    practiceEndMenu.classList.add('hidden');
+    held.clear(); chordDots.clear(); updateVisuals();
+
+    if(stage === 'program'){
+      setupStepTitle.textContent = '練習コース';
+      setupQuestion.textContent = 'どの練習をしますか？';
+      setupChoiceCards([
+        {key:'F',dot:'①の点',label:'超基礎練習'},
+        {key:'D',dot:'②の点',label:'ことば練習'},
+        {key:'S',dot:'③の点',label:'フリー入力へ戻る'}
+      ]);
+      setupSummary.textContent = '超基礎はF、ことば練習はD、フリー入力はS。';
+      if(announce) speak('練習モード。コースを選んでください。超基礎練習はF、1の点。ことば練習はD、2の点。フリー入力へ戻るはS、3の点。');
+    }else if(stage === 'ultra'){
+      setupStepTitle.textContent = '超基礎練習';
+      setupQuestion.textContent = '何を練習しますか？';
+      setupChoiceCards([
+        {key:'F',dot:'①の点',label:'全押し「め」を20回'},
+        {key:'D',dot:'②の点',label:'あ〜んまで'},
+        {key:'S',dot:'③の点',label:'濁音・半濁音・拗音'},
+        {key:'J',dot:'④の点',label:'句読点「、。 」'},
+        {key:'K',dot:'⑤の点',label:'数字・数符'},
+        {key:'L',dot:'⑥の点',label:'文章・分かち書き'}
+      ]);
+      setupSummary.textContent = 'F① 全押し／D② あ〜ん／S③ 濁音等／J④ 句読点／K⑤ 数字／L⑥ 文章';
+      if(announce) speak('超基礎練習。全押しはF、1の点。あからんまではD、2の点。濁音、半濁音、拗音はS、3の点。句読点はJ、4の点。数字はK、5の点。文章はL、6の点。');
+    }else if(stage === 'length'){
+      setupStepTitle.textContent = '1/3　文字数';
+      setupQuestion.textContent = '何文字の言葉を練習しますか？';
+      setupChoiceCards([
+        {key:'F',dot:'①の点',label:'2文字'},
+        {key:'D',dot:'②の点',label:'3文字'},
+        {key:'S',dot:'③の点',label:'4文字'}
+      ]);
+      setupSummary.textContent = '2文字はF、3文字はD、4文字はS。';
+      if(announce) speak('ことば練習。文字数を選んでください。2文字はF、1の点。3文字はD、2の点。4文字はS、3の点。');
+    }else if(stage === 'count'){
+      setupStepTitle.textContent = '2/3　問題数';
+      setupQuestion.textContent = '何問練習しますか？';
+      setupChoiceCards([
+        {key:'F',dot:'①の点',label:'5問'},
+        {key:'D',dot:'②の点',label:'10問'},
+        {key:'S',dot:'③の点',label:'20問'}
+      ]);
+      setupSummary.textContent = `${selectedPracticeLength}文字を選択。5問はF、10問はD、20問はS。`;
+      if(announce) speak(`${selectedPracticeLength}文字。問題数を選んでください。5問はF、1の点。10問はD、2の点。20問はS、3の点。`);
+    }else{
+      setupStepTitle.textContent = '3/3　文字の種類';
+      setupQuestion.textContent = 'どの文字を練習しますか？';
+      setupChoiceCards([
+        {key:'F',dot:'①の点',label:'基本の文字だけ'},
+        {key:'D',dot:'②の点',label:'特殊もまぜる'},
+        {key:'S',dot:'③の点',label:'濁音・半濁音・拗音などを中心'}
+      ]);
+      setupSummary.textContent = `${selectedPracticeLength}文字・${selectedPracticeCount}問。基本はF、混合はD、特殊中心はS。`;
+      if(announce) speak(`${selectedPracticeLength}文字、${selectedPracticeCount}問。文字の種類を選んでください。基本の文字だけはF、1の点。特殊もまぜるはD、2の点。濁音、半濁音、拗音などを中心はS、3の点。`);
+    }
+    captureActive = false;
+  }
+
+  function handlePracticeSetupKey(k){
+    const allowed = practiceSetupStage === 'ultra' ? ['f','d','s','j','k','l'] : ['f','d','s'];
+    if(!allowed.includes(k)) return false;
+    if(practiceSetupStage === 'program'){
+      if(k === 'f'){ practiceProgram = 'ultra'; showPracticeSetup('ultra', true); }
+      else if(k === 'd'){ practiceProgram = 'word'; showPracticeSetup('length', true); }
+      else setMode('normal');
+      return true;
+    }
+    if(practiceSetupStage === 'ultra'){
+      const courseMap = {f:'all', d:'basic', s:'special', j:'punctuation', k:'numbers', l:'sentence'};
+      ultraCourse = courseMap[k];
+      practiceProgram = 'ultra';
+      practiceSetup.classList.add('hidden');
+      practiceGame.classList.remove('hidden');
+      beginUltraPracticeSession();
+      return true;
+    }
+    if(practiceSetupStage === 'length'){
+      selectedPracticeLength = k === 'f' ? 2 : k === 'd' ? 3 : 4;
+      showPracticeSetup('count', true);
+      return true;
+    }
+    if(practiceSetupStage === 'count'){
+      selectedPracticeCount = k === 'f' ? 5 : k === 'd' ? 10 : 20;
+      showPracticeSetup('type', true);
+      return true;
+    }
+    selectedPracticeType = k === 'f' ? 'basic' : k === 'd' ? 'mixed' : 'special';
+    practiceProgram = 'word';
+    practiceSetup.classList.add('hidden');
+    practiceGame.classList.remove('hidden');
+    beginPracticeSession();
+    return true;
+  }
+
+  function previousPracticeSetup(){
+    if(practiceSetupStage === 'type') showPracticeSetup('count', true);
+    else if(practiceSetupStage === 'count') showPracticeSetup('length', true);
+    else if(practiceSetupStage === 'length' || practiceSetupStage === 'ultra') showPracticeSetup('program', true);
+    else setMode('normal');
+  }
+
+  function buildPracticeSession(){
+    const length = selectedPracticeLength;
+    const count = selectedPracticeCount;
+    const type = selectedPracticeType;
+    let pool = practiceBank.filter(item => [...item.word].length === length);
+    if(type === 'basic') pool = pool.filter(item => !item.special);
+    if(type === 'special') pool = pool.filter(item => item.special);
+    if(!pool.length) return [];
+    const chosen = [];
+    while(chosen.length < count){
+      const cycle = shuffle([...pool]);
+      for(const item of cycle){
+        if(chosen.length >= count) break;
+        if(chosen.length && chosen[chosen.length-1].word === item.word && cycle.length > 1) continue;
+        chosen.push({word:item.word, brailleWord:item.brailleWord, units:[...item.units], special:item.special});
+      }
+    }
+    return chosen.slice(0,count);
+  }
+
+  function buildUltraPracticeSession(){
+    if(ultraCourse === 'all'){
+      return Array.from({length:20}, (_,i) => ({word:'め', brailleWord:'め', units:['め'], special:false, ultra:true, label:`全押し ${i+1}回目`}));
+    }
+    if(ultraCourse === 'punctuation') return ultraPunctuation.map(x => ({...x, units:[...x.units]}));
+    if(ultraCourse === 'numbers') return ultraNumbers.map(x => ({...x, units:[...x.units]}));
+    if(ultraCourse === 'sentence') return ultraSentences.map(x => ({...x, units:[...x.units]}));
+    const source = ultraCourse === 'basic' ? ultraBasicKana : ultraSpecialKana;
+    return source.map((ch,i) => ({word:ch, brailleWord:ch, units:[ch], special:ultraCourse !== 'basic', ultra:true, label:`${i+1}/${source.length}`}));
+  }
+
+  function showPracticeGuideAtTop(){
+    requestAnimationFrame(() => {
+      if(practicePanel && !practicePanel.classList.contains('hidden')){
+        practicePanel.scrollIntoView({block:'start', behavior:'auto'});
+      }
+    });
+  }
+
+  function beginUltraPracticeSession(){
+    practiceSetup.classList.add('hidden');
+    practiceGame.classList.remove('hidden');
+    practiceEndMenu.classList.add('hidden');
+    showPracticeGuideAtTop();
+    practiceWords = buildUltraPracticeSession();
+    practiceIndex = 0;
+    practiceUnitIndex = 0;
+    practiceSolved = [];
+    practicePrefixStep = 0;
+    practiceQuestionHadMistake = false;
+    pendingPrefix = null;
+    practiceRunning = practiceWords.length > 0;
+    if(!practiceRunning){
+      practiceProgress.textContent = 'この練習の文字がありません';
+      speak('この練習の文字がありません');
+      return;
+    }
+    updatePracticeGuide();
+    activate();
+    if(ultraCourse === 'all') speak('全押しの練習。1から6の点を全部押して、めを20回入力します。め。');
+    else if(ultraCourse === 'basic') speak('あからんまで、順番に練習します。あ。');
+    else if(ultraCourse === 'special') speak('濁音、半濁音、拗音を順番に練習します。が。');
+    else if(ultraCourse === 'punctuation') speak('句読点の練習。まず、読点です。');
+    else if(ultraCourse === 'numbers') speak('数字の練習。数字の前には、数符をつけます。まず、1。');
+    else speak('文章の練習。助詞の、はとへ、長音、分かち書きにも注意します。' + (practiceWords[0]?.word || ''));
+    armPracticeHint();
+  }
+
+  function restartCurrentPractice(){
+    if(practiceProgram === 'ultra') beginUltraPracticeSession();
+    else beginPracticeSession();
+  }
+
+  function clearPracticeHint(){
+    if(practiceHintTimer){ clearTimeout(practiceHintTimer); practiceHintTimer = null; }
+  }
+  function armPracticeHint(){
+    clearPracticeHint();
+    if(!practiceRunning || mode !== 'practice') return;
+    practiceHintTimer = setTimeout(() => {
+      practiceHintTimer = null;
+      speakPracticeHint();
+    }, 5000);
+  }
+
+  function currentPracticeItem(){ return practiceWords[practiceIndex]; }
+  function currentPracticeUnit(){ return currentPracticeItem()?.units[practiceUnitIndex] || ''; }
+  function currentPracticeSequence(){ return practiceSequenceForUnit(currentPracticeUnit()); }
+
+  function speakCurrentWord(){
+    const item = currentPracticeItem();
+    if(!item) return;
+    // 文章のお題は自然な日本語として読み、フリー入力の全文読み上げとは分ける。
+    if(practiceProgram === 'ultra' && ultraCourse === 'sentence') speak(item.word);
+    else speakInputText(item.speech || item.word);
+  }
+  function stopSpeech(){
+    if('speechSynthesis' in window) speechSynthesis.cancel();
+  }
+
+  function dotNumberList(dots){
+    return [...dots].sort((a,b) => Number(a) - Number(b)).join('、');
+  }
+
+  function speakAllPressMismatch(actualKey){
+    const expectedDots = new Set(['1','2','3','4','5','6']);
+    const actualDots = new Set([...String(actualKey || '')].filter(d => expectedDots.has(d)));
+    const missing = [...expectedDots].filter(d => !actualDots.has(d));
+    const extra = [...actualDots].filter(d => !expectedDots.has(d));
+
+    const parts = [];
+    if(missing.length){
+      parts.push(`${dotNumberList(missing)}の点が押せていません`);
+    }
+    if(extra.length){
+      parts.push(`${dotNumberList(extra)}の点を余分に押しています`);
+    }
+    if(!parts.length){
+      parts.push('1、2、3、4、5、6の点を、できるだけ同時に押してみましょう');
+    }
+    speak(parts.join('。') + '。もう一度、1、2、3、4、5、6の点を押します');
+  }
+
+  function speakPracticeHint(){
+    if(!practiceRunning) return;
+    const unit = currentPracticeUnit();
+    const seq = currentPracticeSequence();
+    if(!unit || !seq.length) return;
+    const step = Math.min(practicePrefixStep, seq.length-1);
+    const cell = seq[step];
+    if(cell === 'SPACE'){
+      speak('ここわ、1マスあけます。スペースキーを押します');
+      return;
+    }
+    const dotsSpeech = dotNumberList(cell);
+    if(unit === '数符'){
+      speak(`数符わ、${dotsSpeech}の点を押します`);
+      return;
+    }
+    if(unit.startsWith('数字')){
+      speak(`${unit.slice(2)}わ、${dotsSpeech}の点を押します`);
+      return;
+    }
+    // 文字そのものは「は」をハと読ませ、説明の助詞は「わ」と発音させる。
+    const labelSpeech = kanaForLiteralSpeech(practiceDisplayForUnit(unit));
+    if(seq.length > 1){
+      speak(`${labelSpeech}の${step+1}マスめわ、${dotsSpeech}の点を押します`);
+    }else{
+      speak(`${labelSpeech}わ、${dotsSpeech}の点を押します`);
+    }
+  }
+
+  function updatePracticeGuide(){
+    const item = currentPracticeItem();
+    if(!item){
+      practiceProgress.textContent = '練習を開始してください';
+      return;
+    }
+    const unit = currentPracticeUnit();
+    const seq = currentPracticeSequence();
+    if(!seq.length) return;
+    const step = Math.min(practicePrefixStep, seq.length-1);
+    const cell = seq[step];
+    const isSpace = cell === 'SPACE';
+    const dots = isSpace ? '' : cell;
+    if(practiceProgram === 'ultra'){
+      if(ultraCourse === 'all') practiceProgress.textContent = `全押し練習　${practiceIndex + 1}/20回`;
+      else if(ultraCourse === 'basic') practiceProgress.textContent = `あ〜ん練習　${practiceIndex + 1}/${practiceWords.length}`;
+      else if(ultraCourse === 'special') practiceProgress.textContent = `濁音・半濁音・拗音　${practiceIndex + 1}/${practiceWords.length}`;
+      else if(ultraCourse === 'punctuation') practiceProgress.textContent = `句読点練習　${practiceIndex + 1}/${practiceWords.length}`;
+      else if(ultraCourse === 'numbers') practiceProgress.textContent = `数字練習　${practiceIndex + 1}/${practiceWords.length}`;
+      else practiceProgress.textContent = `文章練習　${practiceIndex + 1}/${practiceWords.length}　・　${practiceUnitIndex + 1}/${item.units.length}マス目`;
+    }else{
+      practiceProgress.textContent = `${practiceIndex + 1}/${practiceWords.length}もん　・　${practiceUnitIndex + 1}/${item.units.length}文字目`;
+    }
+    practiceWord.textContent = item.word;
+    if(practiceProgram === 'ultra' && ultraCourse === 'sentence'){
+      practiceBrailleSpellingNote.textContent = `点字では「${item.brailleWord}」と入力（□は1マスあけ）`;
+    }else if(practiceProgram === 'ultra' && ultraCourse === 'numbers'){
+      practiceBrailleSpellingNote.textContent = '数字の前に数符③④⑤⑥を1回付け、続けて数字のマスを入力します';
+    }else if(practiceProgram === 'ultra' && ultraCourse === 'punctuation'){
+      practiceBrailleSpellingNote.textContent = '読点は⑤⑥のあとにSpace、句点は②⑤⑥で入力します';
+    }else{
+      practiceBrailleSpellingNote.textContent = practiceProgram === 'ultra' ? '1文字ずつ、点字の形と押す点を覚えます' : (item.brailleWord !== item.word ? `点字では「${item.brailleWord}」と入力` : 'かな表記どおりに入力');
+    }
+    practiceCurrent.textContent = practiceDisplayForUnit(unit);
+    practiceBraille.textContent = isSpace ? '⠀' : seq.map(x => x === 'SPACE' ? '␠' : brailleFromDotString(x)).join('');
+    practiceDotDiagram.innerHTML = isSpace ? '<span style="grid-column:1/-1;font-size:1.2rem;font-weight:900">空白 1マス</span>' : dotDiagramHTML(dots);
+    practiceBrailleNote.textContent = isSpace ? '分かち書き：1マスあけます' : (seq.length > 1 ? `この文字は${seq.length}マス。いまは${step+1}マス目` : 'この文字の点字');
+    practiceDots.textContent = isSpace ? '空白 1マス' : dotsLabel(dots) + (seq.length > 1 ? `　（${step+1}/${seq.length}マス）` : '');
+    practiceKeys.textContent = isSpace ? 'SPACE' : keysLabel(dots);
+    const solvedCount = practiceSolved.length;
+    practiceAnswer.textContent = item.units.map((u,i) => i < solvedCount ? practiceDisplayForUnit(practiceSolved[i]) : '＿').join(' ');
+  }
+
+  function playCorrectChime(){
+    try{
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if(!AudioContextClass) return;
+      if(!audioCtx) audioCtx = new AudioContextClass();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+      const tone = (frequency, start, duration) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.0001, now + start);
+        gain.gain.exponentialRampToValueAtTime(0.25, now + start + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + start + duration);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(now + start); osc.stop(now + start + duration + 0.02);
+      };
+      tone(880,0,.18);
+      tone(660,.19,.34);
+    }catch{}
+  }
+
+
+  function playPerfectChime(){
+    try{
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if(!AudioContextClass) return;
+      if(!audioCtx) audioCtx = new AudioContextClass();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+      // 読み上げ音声と同程度に感じられるよう、豪華さは音量ではなく旋律で出す。
+      // 複数音が重なっても大きくなりすぎないよう、各音のゲインをかなり低く設定する。
+      const tone = (frequency, start, duration, volume=0.055, type='sine') => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.0001, now + start);
+        gain.gain.exponentialRampToValueAtTime(volume, now + start + 0.02);
+        gain.gain.setValueAtTime(volume * 0.72, now + start + Math.max(0.04, duration * 0.55));
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + start + duration);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(now + start); osc.stop(now + start + duration + 0.03);
+      };
+      // 小さめの上昇メロディ。最後の和音も合計音量が膨らまないよう控えめにする。
+      tone(523.25, 0.00, 0.16, 0.050);
+      tone(659.25, 0.15, 0.16, 0.052);
+      tone(783.99, 0.30, 0.18, 0.054);
+      tone(1046.50, 0.47, 0.30, 0.060);
+      tone(659.25, 0.49, 0.27, 0.022, 'sine');
+      tone(783.99, 0.49, 0.27, 0.022, 'sine');
+      tone(1318.51, 0.64, 0.22, 0.040, 'sine');
+    }catch{}
+  }
+
+  function playWrongBuzz(){
+    try{
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if(!AudioContextClass) return;
+      if(!audioCtx) audioCtx = new AudioContextClass();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(105, now + 0.26);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.25, now + 0.012);
+      gain.gain.setValueAtTime(0.25, now + 0.16);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.32);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(now); osc.stop(now + 0.34);
+    }catch{}
+  }
+
+  function beginPracticeSession(){
+    practiceSetup.classList.add('hidden');
+    practiceGame.classList.remove('hidden');
+    practiceEndMenu.classList.add('hidden');
+    showPracticeGuideAtTop();
+    practiceWords = buildPracticeSession();
+    practiceIndex = 0;
+    practiceUnitIndex = 0;
+    practiceSolved = [];
+    practicePrefixStep = 0;
+    practiceQuestionHadMistake = false;
+    pendingPrefix = null;
+    practiceRunning = practiceWords.length > 0;
+    if(!practiceRunning){
+      practiceProgress.textContent = 'この設定の問題がありません';
+      speak('この設定の問題がありません');
+      return;
+    }
+    updatePracticeGuide();
+    activate();
+    speakCurrentWord();
+    armPracticeHint();
+  }
+
+  function startPracticeQuestion(index){
+    clearPracticeHint();
+    practiceEndMenu.classList.add('hidden');
+    practiceIndex = index;
+    practiceUnitIndex = 0;
+    practiceSolved = [];
+    practicePrefixStep = 0;
+    practiceQuestionHadMistake = false;
+    pendingPrefix = null;
+    practiceRunning = true;
+    updatePracticeGuide();
+    speakCurrentWord();
+    armPracticeHint();
+    activate();
+  }
+
+  function finishPracticeSession(){
+    clearPracticeHint();
+    practiceRunning = false;
+    held.clear(); chordDots.clear(); updateVisuals();
+    const title = practiceProgram === 'ultra' ? '超基礎練習、おわり' : `${practiceWords.length}もんの練習、おわり`;
+    practiceProgress.textContent = title;
+    practiceWord.textContent = 'できました！';
+    practiceBrailleSpellingNote.textContent = '';
+    practiceCurrent.textContent = '★';
+    practiceBraille.textContent = '⠿';
+    practiceDotDiagram.innerHTML = '';
+    practiceBrailleNote.textContent = '';
+    practiceDots.textContent = 'おつかれさま';
+    practiceKeys.textContent = 'F①＝もう一度　D②＝練習コース変更　S③＝フリー入力';
+    practiceAnswer.textContent = '';
+    practiceEndMenu.classList.remove('hidden');
+    const cards = practiceEndMenu.querySelectorAll('.choice-card span:last-child');
+    if(cards.length >= 3){
+      cards[0].textContent = 'もう一度 同じ練習';
+      cards[1].textContent = '練習コースを変える';
+      cards[2].textContent = 'フリー入力へ戻る';
+    }
+    speakInputText(`${title}。もういちど、おなじれんしゅうをするならF、1のてん。れんしゅうコースをかえるならD、2のてん。フリーにゅうりょくにもどるならS、3のてん。`);
+  }
+
+  function nextPracticeQuestion(){
+    if(!practiceRunning) return;
+    if(practiceIndex + 1 >= practiceWords.length){ finishPracticeSession(); return; }
+    startPracticeQuestion(practiceIndex + 1);
+  }
+
+  function setMode(next){
+    clearPracticeHint();
+    practiceEntryPromptOpen = false;
+    practiceEntryPrompt.classList.add('hidden');
+    writingModeBanner.classList.add('hidden');
+    normalModeBtn.textContent = '通常入力';
+    freeMeStreak = 0;
+    freeWritingTriggerStreak = 0;
+    latinMode = false;
+    latinHasLetter = false;
+    latinUpperNext = false;
+    mode = next;
+    const isPractice = mode === 'practice';
+    normalModeBtn.classList.toggle('active', !isPractice);
+    practiceModeBtn.classList.toggle('active', isPractice);
+    normalModeBtn.setAttribute('aria-selected', String(!isPractice));
+    practiceModeBtn.setAttribute('aria-selected', String(isPractice));
+    normalPanel.classList.toggle('hidden', isPractice);
+    practicePanel.classList.toggle('hidden', !isPractice);
+    if(isPractice){ showPracticeSetup('program', true); }
+    else { practiceRunning=false; pendingPrefix=null; practiceEndMenu.classList.add('hidden'); practiceSetup.classList.add('hidden'); practiceGame.classList.remove('hidden'); activate(); }
+  }
+
+  function handlePracticeChord(key){
+    if(!practiceRunning) return;
+    clearPracticeHint();
+    // ヒントや解説の途中でも入力を最優先。正誤音と説明を重ねない。
+    stopSpeech();
+    const item = currentPracticeItem();
+    const unit = currentPracticeUnit();
+    const seq = currentPracticeSequence();
+    if(!item || !seq.length) return;
+    const expected = seq[practicePrefixStep];
+
+    if(key !== expected){
+      practiceQuestionHadMistake = true;
+      setStatus('ちがいます', false);
+      updatePracticeGuide();
+      playWrongBuzz();
+      // ×の音のあと、待たずに正しい押し方を音声で知らせる。
+      setTimeout(() => {
+        if(mode === 'practice' && practiceRunning){
+          // 超基礎「め」の全押し練習だけは、足りない点を具体的に知らせる。
+          if(practiceProgram === 'ultra' && ultraCourse === 'all') speakAllPressMismatch(key);
+          else speakPracticeHint();
+          armPracticeHint();
+        }
+      }, 380);
+      return;
+    }
+
+    if(practicePrefixStep < seq.length - 1){
+      practicePrefixStep++;
+      updatePracticeGuide();
+      armPracticeHint();
+      return;
+    }
+
+    // ノーミスで問題を完成させる瞬間は通常の正解音を重ねず、豪華音だけにする。
+    const completesItemNow = (practiceUnitIndex + 1 >= item.units.length);
+    const usePerfectOnly = completesItemNow && !practiceQuestionHadMistake;
+    if(!usePerfectOnly) playCorrectChime();
+    practiceSolved.push(unit);
+    practiceUnitIndex++;
+    practicePrefixStep = 0;
+    pendingPrefix = null;
+
+    if(practiceUnitIndex >= item.units.length){
+      practiceAnswer.textContent = item.units.map(practiceDisplayForUnit).join(' ');
+      setStatus(item.word + '、できました', false);
+      clearPracticeHint();
+      if(!practiceQuestionHadMistake){
+        setTimeout(() => {
+          if(mode === 'practice') playPerfectChime();
+        }, 60);
+      }
+      if(practiceProgram === 'ultra'){
+        setTimeout(() => {
+          if(mode === 'practice' && practiceRunning) nextPracticeQuestion();
+        }, practiceQuestionHadMistake ? 520 : 1100);
+      }else{
+        setTimeout(() => {
+          if(mode === 'practice' && practiceRunning){
+            speakInputText(`${item.word}、できました`);
+          }
+        }, practiceQuestionHadMistake ? 450 : 1050);
+        setTimeout(() => {
+          if(mode === 'practice' && practiceRunning) nextPracticeQuestion();
+        }, practiceQuestionHadMistake ? 1350 : 1900);
+      }
+      return;
+    }
+
+    updatePracticeGuide();
+    armPracticeHint();
+  }
+
+  function commitChord(key){
+    if(!key) return;
+    if(mode === 'practice'){
+      handlePracticeChord(key);
+      return;
+    }
+
+    // 外字符⑤⑥：直後のSpaceなら読点、点字が続けばアルファベット入力。
+    if(key === '56' && !latinMode && !pendingPrefix){
+      freeMeStreak = 0;
+      freeWritingTriggerStreak = 0;
+      latinMode = true;
+      latinHasLetter = false;
+      latinUpperNext = false;
+      setStatus('外字符：アルファベットを入力。直後にSpaceで読点', true);
+      return;
+    }
+
+    // 外字符の後はSpaceまで英字として扱う。⑥は次の1文字の大文字符。
+    if(latinMode){
+      freeMeStreak = 0;
+      freeWritingTriggerStreak = 0;
+      pendingPrefix = null;
+
+      if(key === '6'){
+        latinUpperNext = true;
+        setStatus('大文字符：次の英字を大文字で入力', true);
+        return;
+      }
+
+      const latin = latinBase[key];
+      if(!latin){
+        setStatus('この点字はアルファベットとして未対応です：' + key.split('').join('・') + 'の点', true);
+        return;
+      }
+
+      const out = latinUpperNext ? latin.toUpperCase() : latin;
+      latinUpperNext = false;
+      latinHasLetter = true;
+      appendText(out);
+      setStatus('英字：' + out, false);
+      speak(out);
+      return;
+    }
+
+    // フリー入力で DKL（②⑤⑥＝句点）を5回連続すると文章を書くモードへ。
+    // 5個の句点は切替コマンドとして本文から取り除く。
+    if(mode === 'normal' && key !== '256') freeWritingTriggerStreak = 0;
+
+    if(prefixNames[key]){
+      freeMeStreak = 0;
+      pendingPrefix = key;
+      setStatus(prefixNames[key] + '：次のマスを入力', true);
+      return;
+    }
+    const ch = base[key];
+    if(!ch){
+      freeMeStreak = 0;
+      freeWritingTriggerStreak = 0;
+      pendingPrefix = null;
+      setStatus('未対応の点字：' + key.split('').join('・') + 'の点', true);
+      return;
+    }
+    if(pendingPrefix){
+      freeWritingTriggerStreak = 0;
+      const out = resolveWithPrefix(pendingPrefix, ch);
+      const pName = prefixNames[pendingPrefix];
+      pendingPrefix = null;
+      if(!out){
+        setStatus(pName + 'と「' + ch + '」の組み合わせは未対応です', true);
+        return;
+      }
+      appendText(out);
+      setStatus('入力：' + out, false);
+      speakInputText(out);
+      trackFreePracticeTrigger(out);
+    } else {
+      appendText(ch);
+      setStatus('入力：' + ch, false);
+
+      if(mode === 'normal' && key === '256'){
+        // 切替判定を先に行う。5回目なら、途中の自動改行も含めて切替用の句点を消す。
+        if(trackWritingModeTrigger(key)) return;
+        // フリー入力でも句点を入力したら自動的に次の行へ進む。
+        speakInputText(ch);
+        appendText('\n');
+        setStatus('句点。次の行へ', false);
+        return;
+      }
+
+      if(mode === 'writing' && ch === '。'){
+        finishWritingSentence();
+        return;
+      }
+
+      // 長音符は記号だけだと読み上げられない音声環境があるため、明示的に読む。
+      if(ch === 'ー') speak('のばしぼう');
+      else speakInputText(ch);
+      trackFreePracticeTrigger(ch);
+    }
+  }
+
+  function updateVisuals(){
+    document.querySelectorAll('.key[data-key]').forEach(el => {
+      el.classList.toggle('down', held.has(el.dataset.key));
+    });
+    preview.textContent = chordDots.size ? brailleChar(chordDots) : '⠀';
+  }
+  function activate(){
+    captureActive = true;
+    capture.classList.add('active');
+    capture.textContent = mode === 'practice' ? '練習中：S D F J K L を同時押し' : (mode === 'writing' ? '文章を書くモード：S D F J K L を同時押し' : '入力中：S D F J K L を同時押し');
+    if(mode === 'practice'){
+      capture.focus({preventScroll:true});
+    }else{
+      // フリー入力・文章モードでは本文欄にフォーカスを置き、現在のカーソルを常に見えるようにする。
+      output.focus({preventScroll:true});
+      const pos = output.selectionStart ?? output.value.length;
+      output.setSelectionRange(pos,pos);
+      keepCaretVisible();
+    }
+    setStatus('入力できます', false);
+  }
+
+  capture.addEventListener('click', activate);
+  capture.addEventListener('focus', () => { captureActive=true; capture.classList.add('active'); });
+  capture.addEventListener('blur', () => {
+    // フリー入力・文章入力ではフォーカスが別の要素へ移っても点字入力を継続する。
+    if(mode === 'practice'){ captureActive=false; capture.classList.remove('active'); }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+
+    // Ctrl/Cmd を使う通常のコピー・貼り付け・切り取り・全選択などはブラウザ標準動作を優先する。
+    if(e.ctrlKey || e.metaKey) return;
+
+    // フリー入力・文章入力：十字キーで文章中のカーソルを移動する。
+    if((mode === 'normal' || mode === 'writing') && !practiceEntryPromptOpen && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+      e.preventDefault();
+      pendingPrefix = null;
+      latinMode = false;
+      latinHasLetter = false;
+      latinUpperNext = false;
+      held.clear(); chordDots.clear(); updateVisuals();
+      moveCursorByArrow(e.key);
+      return;
+    }
+
+    // フリー入力・文章入力：X C V M , . の6キー同時押しで保存。
+    // e.code を使うことで、日本語入力の状態に左右されず物理キーを判定する。
+    if((mode === 'normal' || mode === 'writing') && !practiceEntryPromptOpen && saveChordCodes.has(e.code)){
+      e.preventDefault();
+      if(!e.repeat){
+        saveChordHeld.add(e.code);
+        if(!saveChordFired && [...saveChordCodes].every(code => saveChordHeld.has(code))){
+          saveChordFired = true;
+          saveWrittenText();
+        }
+      }
+      return;
+    }
+
+    // フリー入力・文章入力の読み上げショートカット。
+    if((mode === 'normal' || mode === 'writing') && !practiceEntryPromptOpen && (k === 'h' || k === 'g')){
+      e.preventDefault();
+      if(e.repeat) return;
+      if(k === 'h') readCurrentFreeLine();
+      else readAllFreeLines();
+      return;
+    }
+
+    // 本文欄にフォーカスがあっても、普通のPC文字入力は本文へ直接入れず、点字入力だけを使う。
+    // Ctrl/Cmd+C・Vなどは上で標準動作として除外済み。
+    if((mode === 'normal' || mode === 'writing') && !practiceEntryPromptOpen && document.activeElement === output && e.key.length === 1 && !validKeys.has(k) && k !== ' '){
+      e.preventDefault();
+      return;
+    }
+
+    if(mode === 'normal' && practiceEntryPromptOpen){
+      if(['f','d'].includes(k)){
+        e.preventDefault();
+        if(e.repeat) return;
+        if(k === 'f'){
+          practiceEntryPromptOpen = false;
+          practiceEntryPrompt.classList.add('hidden');
+          setMode('practice');
+        }else{
+          closePracticeEntryPrompt(true);
+        }
+      }else if(validKeys.has(k) || [' ','backspace','enter','escape'].includes(k)){
+        e.preventDefault();
+      }
+      return;
+    }
+
+    if(mode === 'practice' && !practiceRunning && !practiceEndMenu.classList.contains('hidden')){
+      if(['f','d','s'].includes(k)){
+        e.preventDefault();
+        if(e.repeat) return;
+        if(k === 'f'){ restartCurrentPractice(); return; }
+        if(k === 'd'){ showPracticeSetup('program', true); return; }
+        if(k === 's'){ setMode('normal'); return; }
+      }
+      if(validKeys.has(k) || [' ','backspace','enter','escape'].includes(k)) e.preventDefault();
+      return;
+    }
+
+    if(mode === 'practice' && !practiceRunning && !practiceSetup.classList.contains('hidden')){
+      const setupKeys = practiceSetupStage === 'ultra' ? ['f','d','s','j','k','l','backspace','escape'] : ['f','d','s','backspace','escape'];
+      if(setupKeys.includes(k)){
+        e.preventDefault();
+        if(e.repeat) return;
+        if(k === 'escape'){ setMode('normal'); return; }
+        if(k === 'backspace'){ previousPracticeSetup(); return; }
+        handlePracticeSetupKey(k);
+      }
+      return;
+    }
+
+    // 前置符を入力した直後のDeleteは、本文を消さずに待機状態だけを取り消す。
+    // 対象：濁音符⑤、半濁音符⑥、外字符⑤⑥（まだ英字を入力していない場合）。
+    if((mode === 'normal' || mode === 'writing') && k === 'delete'){
+      if(pendingPrefix === '5' || pendingPrefix === '6'){
+        e.preventDefault();
+        if(e.repeat) return;
+        const cancelName = pendingPrefix === '5' ? '濁音符' : '半濁音符';
+        pendingPrefix = null;
+        held.clear(); chordDots.clear(); updateVisuals();
+        setStatus(cancelName + 'を取り消しました', true);
+        return;
+      }
+      if(latinMode && !latinHasLetter){
+        e.preventDefault();
+        if(e.repeat) return;
+        latinMode = false;
+        latinUpperNext = false;
+        held.clear(); chordDots.clear(); updateVisuals();
+        setStatus('外字符を取り消しました', true);
+        return;
+      }
+    }
+
+    const shouldHandle = (captureActive || mode === 'practice' || mode === 'writing') && (validKeys.has(k) || [' ','backspace','delete','enter','escape'].includes(k));
+    if(!shouldHandle) return;
+    e.preventDefault();
+
+    if(mode === 'practice' && !validKeys.has(k)){
+      if(k === ' ' && !e.repeat){
+        clearPracticeHint();
+        const expected = currentPracticeSequence()[practicePrefixStep];
+        if(expected === 'SPACE') handlePracticeChord('SPACE');
+        else { speakCurrentWord(); armPracticeHint(); }
+      }
+      if(k === 'escape'){ setMode('normal'); }
+      return;
+    }
+
+    if(validKeys.has(k)){
+      if(e.repeat) return;
+      if(mode === 'practice') clearPracticeHint();
+      held.add(k);
+      chordDots.add(keyToDot[k]);
+      updateVisuals();
+      return;
+    }
+
+    if(k === ' '){
+      if(e.repeat) return;
+      freeMeStreak = 0;
+      freeWritingTriggerStreak = 0;
+      pendingPrefix = null;
+
+      if(latinMode){
+        // ⑤⑥の直後にSpaceなら読点。英字を1文字以上入力済みなら英字モード終了＋空白。
+        if(!latinHasLetter){
+          latinMode = false;
+          latinUpperNext = false;
+          appendText('、');
+          setStatus('読点', false);
+          speakInputText('、');
+        }else{
+          latinMode = false;
+          latinHasLetter = false;
+          latinUpperNext = false;
+          appendText(' ');
+          setStatus('アルファベット入力を終了。空白', true);
+        }
+        return;
+      }
+
+      appendText(' ');
+      setStatus('空白', true);
+      return;
+    }
+    if(k === 'delete'){
+      freeMeStreak=0; freeWritingTriggerStreak=0;
+      const deleted = deleteForward();
+      if(deleted){ setStatus('カーソルの右の1文字を削除しました', true); }
+      else{ setStatus('右に削除する文字はありません', true); }
+      return;
+    }
+    if(k === 'backspace'){
+      freeMeStreak=0; freeWritingTriggerStreak=0; pendingPrefix=null;
+      if(latinMode && !latinHasLetter){
+        latinMode=false; latinUpperNext=false;
+        setStatus('外字符を取り消しました', true);
+        return;
+      }
+      const beforePos = output.selectionStart ?? 0; backspace(); if(beforePos > 0){ setStatus('カーソルの左の1文字を削除しました',true); } else { setStatus('左に削除する文字はありません',true); } return;
+    }
+    if(k === 'enter'){
+      freeMeStreak=0; freeWritingTriggerStreak=0; pendingPrefix=null;
+      latinMode=false; latinHasLetter=false; latinUpperNext=false;
+      if(mode === 'writing'){ readAllWriting(); return; }
+      const valueBeforeBreak = output.value;
+      const caretBeforeBreak = output.selectionStart ?? valueBeforeBreak.length;
+      const lineStartBeforeBreak = valueBeforeBreak.lastIndexOf('\n', Math.max(0, caretBeforeBreak - 1)) + 1;
+      const lineBeforeBreak = valueBeforeBreak.slice(lineStartBeforeBreak, caretBeforeBreak).trimEnd();
+      appendText('\n');
+      if(lineBeforeBreak){
+        setStatus('改行前の行を読み上げています', false);
+        speakInputText(lineBeforeBreak);
+      }else{
+        setStatus('改行しました', false);
+      }
+      return;
+    }
+    if(k === 'escape'){
+      freeMeStreak=0; freeWritingTriggerStreak=0; pendingPrefix=null;
+      latinMode=false; latinHasLetter=false; latinUpperNext=false;
+      held.clear(); chordDots.clear(); updateVisuals();
+      if(mode === 'writing'){ exitWritingMode(); return; }
+      setStatus('前置符を解除しました',true);
+    }
+  }, true);
+
+  document.addEventListener('keyup', (e) => {
+    const k = e.key.toLowerCase();
+
+    if(saveChordCodes.has(e.code)){
+      e.preventDefault();
+      saveChordHeld.delete(e.code);
+      if(saveChordHeld.size === 0) saveChordFired = false;
+      return;
+    }
+
+    if(practiceEntryPromptOpen) return;
+    if(mode === 'practice' && !practiceRunning) return;
+    if((!captureActive && mode !== 'practice' && mode !== 'writing') || !validKeys.has(k)) return;
+    e.preventDefault();
+    held.delete(k);
+    updateVisuals();
+    if(held.size === 0 && chordDots.size){
+      const key = dotsKey(chordDots);
+      chordDots.clear();
+      updateVisuals();
+      commitChord(key);
+    }
+  }, true);
+
+  window.addEventListener('blur', () => {
+    held.clear(); chordDots.clear(); updateVisuals();
+    saveChordHeld.clear();
+    saveChordFired = false;
+    if(mode === 'practice' && practiceRunning) armPracticeHint();
+  });
+
+  normalModeBtn.addEventListener('click', () => setMode('normal'));
+  practiceModeBtn.addEventListener('click', () => setMode('practice'));
+  changePracticeBtn.addEventListener('click', () => showPracticeSetup('program', true));
+  newWordBtn.addEventListener('click', () => {
+    if(!practiceRunning){ restartCurrentPractice(); return; }
+    nextPracticeQuestion();
+  });
+  repeatGuideBtn.addEventListener('click', () => { speakCurrentWord(); armPracticeHint(); });
+  hintBtn.addEventListener('click', () => { clearPracticeHint(); speakPracticeHint(); armPracticeHint(); });
+
+  speakBtn.addEventListener('click', () => {
+    speakEnabled = !speakEnabled;
+    speakBtn.setAttribute('aria-pressed', String(speakEnabled));
+    speakBtn.textContent = '読み上げ：' + (speakEnabled ? 'オン' : 'オフ');
+    if(speakEnabled) speak('読み上げ オン');
+  });
+  clearBtn.addEventListener('click', () => {
+    output.value=''; freeMeStreak=0; freeWritingTriggerStreak=0; pendingPrefix=null; setStatus('全文をクリアしました',true); activate();
+  });
+  copyBtn.addEventListener('click', async () => {
+    try{ await navigator.clipboard.writeText(output.value); setStatus('コピーしました',true); }
+    catch{ output.select(); document.execCommand('copy'); setStatus('コピーしました',true); }
+    activate();
+  });
+
+
+  async function pasteFromClipboard(){
+    try{
+      const text = await navigator.clipboard.readText();
+      if(!text){
+        setStatus('貼り付ける内容がありません', true);
+        activate();
+        return;
+      }
+      appendText(text);
+      setStatus('貼り付けました', true);
+      activate();
+    }catch(err){
+      setStatus('貼り付けできませんでした。キーボードの貼り付けも使えます', true);
+      activate();
+    }
+  }
+
+  pasteBtn.addEventListener('click', () => {
+    pasteFromClipboard();
+  });
+
+  // マウスや矢印キーでカーソル位置を変えた場合も、その位置を表示し続ける。
+  output.addEventListener('input', keepCaretVisible);
+  output.addEventListener('click', keepCaretVisible);
+  output.addEventListener('select', keepCaretVisible);
+  output.addEventListener('keyup', (e) => {
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End','PageUp','PageDown'].includes(e.key)){
+      keepCaretVisible();
+    }
+  });
+
+  // 起動直後からフリー入力を受け付ける。
+  activate();
+})();
+</script>
 </body>
 </html>
