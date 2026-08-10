@@ -1,27 +1,783 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>音声対応すごろく</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>音声すごろく</title>
+<style>
+  :root{
+    --bg1:#e9f7ff;
+    --bg2:#fff8dc;
+    --ink:#15304a;
+    --accent:#ff7a00;
+    --accent2:#1769aa;
+    --panel:rgba(255,255,255,.94);
+    --shadow:0 12px 30px rgba(27,63,91,.18);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;width:100%;height:100%;min-height:100%;overflow:hidden;overscroll-behavior:none;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;color:var(--ink);background:linear-gradient(145deg,var(--bg1),var(--bg2));}
+  button,input,select{font:inherit}
+  button{touch-action:manipulation}
+  .screen{display:none;width:100%;height:100dvh;min-height:100dvh;overflow:auto;padding:16px max(14px,env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));}
+  .screen.active{display:block}
+  #gameScreen{overflow:hidden;padding:6px max(6px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));}
+  #gameScreen.active{display:flex}
+  .wrap{max-width:980px;margin:0 auto}
+  #gameScreen .wrap{width:100%;max-width:none;height:100%;display:grid;grid-template-rows:auto auto minmax(0,1fr) minmax(190px,36dvh);gap:7px}
+  .card{background:var(--panel);border:3px solid #fff;border-radius:24px;box-shadow:var(--shadow);padding:18px}
+  h1,h2,p{margin-top:0}
+  h1{font-size:clamp(2rem,8vw,4rem);line-height:1.1;text-align:center;margin-bottom:10px;text-shadow:0 3px 0 #fff}
+  .subtitle{text-align:center;font-size:clamp(1rem,3.5vw,1.35rem);font-weight:700;margin-bottom:18px}
+  .start-grid{display:grid;gap:12px}
+  .name-row{display:grid;grid-template-columns:74px 1fr;gap:10px;align-items:center}
+  .name-row label{font-weight:900}
+  .name-row input{width:100%;min-height:52px;border:3px solid #9cc9e8;border-radius:14px;padding:8px 12px;font-size:1.1rem;background:#fff}
+  .name-row input:focus{outline:4px solid #ffd166;border-color:#ff8c42}
+  .setting-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+  .setting-row label{font-weight:800;display:grid;gap:6px}
+  select{min-height:48px;border:3px solid #9cc9e8;border-radius:12px;padding:6px;background:#fff}
+  .primary{width:100%;min-height:72px;border:0;border-radius:18px;background:linear-gradient(#ffb347,#ff7a00);color:#fff;font-weight:1000;font-size:clamp(1.25rem,5vw,1.75rem);box-shadow:0 8px 0 #c95300,0 12px 24px rgba(201,83,0,.25);margin-top:14px}
+  .primary:active{transform:translateY(5px);box-shadow:0 3px 0 #c95300}
+  .help{margin-top:14px;background:#edf8ff;border-left:6px solid var(--accent2);border-radius:12px;padding:12px;line-height:1.65}
+  .topbar{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:0}
+  .turnbox{background:#fff;border:3px solid #ffd166;border-radius:18px;padding:12px 14px;box-shadow:var(--shadow)}
+  .turnbox .small{font-size:.95rem;font-weight:700;color:#567}
+  #turnName{font-size:clamp(1.35rem,5vw,2rem);font-weight:1000}
+  .smallbtn{min-height:48px;border:0;border-radius:14px;background:#365f7d;color:#fff;font-weight:900;padding:8px 14px}
+  .status-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-bottom:0}
+  .status-card{background:#fff;border-radius:14px;padding:7px 9px;border:3px solid transparent;box-shadow:0 6px 18px rgba(27,63,91,.12)}
+  .status-card.current{border-color:#ffb000;transform:scale(1.02)}
+  .player-name{font-weight:1000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .progress{font-size:.95rem;margin-top:3px}
+  .board-wrap{min-height:0;background:rgba(255,255,255,.88);border-radius:18px;padding:7px;box-shadow:var(--shadow);overflow:auto;overscroll-behavior:contain}
+  #board{display:grid;grid-template-columns:repeat(5,minmax(62px,1fr));gap:7px;min-width:360px}
+  .square{position:relative;aspect-ratio:1/1;border-radius:14px;border:3px solid rgba(255,255,255,.95);box-shadow:inset 0 -4px 0 rgba(0,0,0,.08),0 4px 10px rgba(0,0,0,.08);padding:5px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+  .square.normal{background:#d9f2ff}
+  .square.good{background:#d8f8dc}
+  .square.bad{background:#ffe0e0}
+  .square.rest{background:#efe1ff}
+  .square.challenge{background:#fff3b5}
+  .square.incident{background:#ffd1a8;border-color:#ff6b00;box-shadow:inset 0 0 0 3px rgba(255,107,0,.22)}
+  .square.start{background:#fff0a8}
+  .square.goal{background:#ffd166}
+  .num{font-size:.72rem;font-weight:1000;background:rgba(255,255,255,.75);border-radius:999px;padding:1px 6px;align-self:flex-start}
+  .icon{font-size:clamp(1.2rem,5vw,2rem);text-align:center;line-height:1}
+  .tokens{display:flex;flex-wrap:wrap;gap:2px;min-height:18px;justify-content:center}
+  .token{width:20px;height:20px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);font-size:11px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:1000}
+  .token.c0{background:#e53935}.token.c1{background:#1e88e5}.token.c2{background:#43a047}.token.c3{background:#8e24aa}.token.c4{background:#f4511e}.token.c5{background:#00897b}
+  .control-card{height:100%;min-height:0;margin-top:0;text-align:center;background:#fff;border-radius:22px;padding:8px;box-shadow:var(--shadow);position:relative;z-index:10;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:6px;overflow:hidden}
+  #eventText{min-height:42px;font-size:clamp(.95rem,3.6vw,1.22rem);font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1.35;padding:2px 6px}
+  #diceButton{width:100%;height:100%;min-height:150px;border:0;border-radius:30px;background:linear-gradient(180deg,#3da5ff,#1769aa);color:#fff;font-size:clamp(2rem,9vw,4rem);font-weight:1000;box-shadow:0 9px 0 #0e4775,0 14px 28px rgba(23,105,170,.3);letter-spacing:.04em;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}
+  #diceButton:active:not(:disabled){transform:translateY(6px);box-shadow:0 5px 0 #0e4775}
+  #diceButton:disabled{background:#9fb2c1;box-shadow:0 8px 0 #667987;opacity:.8}
+  .dice-face{font-size:1.2em;margin-right:.2em}
+  .subline{margin-top:2px;font-weight:800;color:#4d6476;font-size:clamp(.9rem,3.2vw,1.05rem)}
+  .hidden{display:none!important}
+  .overlay{position:fixed;inset:0;background:rgba(7,26,41,.82);display:flex;align-items:center;justify-content:center;padding:20px;z-index:100}
+  .overlay.hidden{display:none}
+  .result{width:min(92vw,620px);max-height:92dvh;overflow-y:auto;background:#fff;border-radius:28px;padding:24px;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.35)}
+  .result h2{font-size:clamp(2rem,8vw,3.5rem);color:#ed6c02;margin-bottom:8px}
+  #winnerText{font-size:clamp(1.25rem,5vw,1.8rem);font-weight:1000}
+  #rankingList{margin:16px 0 4px;display:grid;gap:8px;text-align:left}
+  .ranking-row{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:10px;align-items:center;background:#eef7ff;border:3px solid #d5ebfa;border-radius:15px;padding:10px 12px;font-weight:900}
+  .ranking-row.rank1{background:#fff4b8;border-color:#ffd166;font-size:1.08em}
+  .ranking-rank{text-align:center;white-space:nowrap}
+  .ranking-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ranking-pos{white-space:nowrap;color:#365f7d}
+  .confetti{font-size:clamp(2rem,9vw,4rem);letter-spacing:.18em;animation:bounce .8s infinite alternate}
+  .challenge-overlay{position:fixed;inset:0;background:#10283b;display:flex;align-items:center;justify-content:center;padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));z-index:120}
+  .challenge-overlay.hidden{display:none}
+  .challenge-panel{width:100%;height:100%;display:grid;grid-template-rows:auto auto minmax(50dvh,1fr);gap:10px;text-align:center;color:#fff}
+  .challenge-title{font-size:clamp(1.5rem,7vw,3rem);font-weight:1000;margin:0}
+  .challenge-info{font-size:clamp(1.1rem,5vw,2rem);font-weight:900;display:flex;justify-content:space-around;gap:10px}
+  #challengeTapButton{width:100%;height:100%;min-height:52dvh;border:5px solid #fff;border-radius:32px;background:linear-gradient(180deg,#ffbf3f,#ff7a00);color:#fff;font-size:clamp(2rem,11vw,5rem);font-weight:1000;box-shadow:inset 0 -8px 0 rgba(0,0,0,.16);touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}
+  #challengeTapButton:active{transform:scale(.99)}
+  @keyframes bounce{to{transform:translateY(-12px) scale(1.06)}}
+  @media (max-height:620px){
+    #gameScreen .wrap{grid-template-rows:auto auto minmax(0,1fr) minmax(145px,42dvh)}
+    .turnbox{padding:7px 10px}
+    .status-card{padding:4px 7px}
+    #eventText{min-height:32px;font-size:.92rem}
+    #diceButton{min-height:112px;font-size:clamp(1.7rem,8vw,3rem)}
+  }
+  @media (min-width:700px){
+    .screen{padding-top:24px}
+    #gameScreen{padding-top:8px}
+    .start-grid{grid-template-columns:1fr 1fr}
+    .status-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+    #board{grid-template-columns:repeat(10,minmax(68px,1fr))}
+    .square{aspect-ratio:1/1.02}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto!important}}
+</style>
 </head>
-
 <body>
+<section id="startScreen" class="screen active" aria-labelledby="gameTitle">
+  <div class="wrap">
+    <div class="card">
+      <h1 id="gameTitle">🎲 音声すごろく</h1>
+      <p class="subtitle">読み上げと効果音で楽しめる、小学生あるあるすごろく！</p>
 
-<h1>音声対応すごろく</h1>
+      <div class="start-grid" aria-label="プレイヤー名入力">
+        <div class="name-row"><label for="name1">1人目</label><input id="name1" maxlength="10" value="たろう" autocomplete="off"></div>
+        <div class="name-row"><label for="name2">2人目</label><input id="name2" maxlength="10" value="はなこ" autocomplete="off"></div>
+        <div class="name-row"><label for="name3">3人目</label><input id="name3" maxlength="10" placeholder="名前（空欄でもOK）" autocomplete="off"></div>
+        <div class="name-row"><label for="name4">4人目</label><input id="name4" maxlength="10" placeholder="名前（空欄でもOK）" autocomplete="off"></div>
+        <div class="name-row"><label for="name5">5人目</label><input id="name5" maxlength="10" placeholder="名前（空欄でもOK）" autocomplete="off"></div>
+        <div class="name-row"><label for="name6">6人目</label><input id="name6" maxlength="10" placeholder="名前（空欄でもOK）" autocomplete="off"></div>
+      </div>
 
-<p>
-音声読み上げを使って、
-見え方に関係なくみんなで遊べるすごろくです。
-</p>
+      <div class="setting-row">
+        <label>読み上げ
+          <select id="speechMode">
+            <option value="on" selected>あり</option>
+            <option value="off">なし</option>
+          </select>
+        </label>
+        <label>読み上げ速度
+          <select id="speechRate">
+            <option value="0.95">ゆっくり</option>
+            <option value="1.15" selected>ふつう</option>
+            <option value="1.45">はやめ</option>
+            <option value="1.75">最速</option>
+          </select>
+        </label>
+      </div>
 
-<p>
-現在、教材を準備しています。
-</p>
+      <button id="startButton" class="primary">ゲームをはじめる</button>
+      <div class="help">
+        <strong>遊び方：</strong>スマホはタップ、パソコンはスペースキーでサイコロをふれます。先にゴールした人の勝ち！
+      </div>
+    </div>
+  </div>
+</section>
 
-<p>
-<a href="../">教材室のトップページへ戻る</a>
-</p>
+<section id="gameScreen" class="screen" aria-label="すごろくゲーム画面">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="turnbox" aria-live="polite">
+        <div class="small">いまの番</div>
+        <div id="turnName">―</div>
+      </div>
+      <button id="soundButton" class="smallbtn" aria-pressed="true">🔊 読み上げ</button>
+    </div>
 
+    <div id="statusGrid" class="status-grid"></div>
+
+    <div class="board-wrap" aria-label="すごろく盤面">
+      <div id="board"></div>
+    </div>
+
+    <div class="control-card">
+      <div id="eventText" aria-live="assertive">サイコロをふってください。</div>
+      <button id="diceButton" aria-label="サイコロをふる。パソコンではスペースキーでも操作できます" aria-keyshortcuts="Space"><span class="dice-face">🎲</span>サイコロをふる</button>
+      <div id="subline" class="subline">ゴールまであと45マス　｜　PC：スペースキーでも操作できます</div>
+    </div>
+  </div>
+</section>
+
+<div id="challengeOverlay" class="challenge-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="challengeTitle">
+  <div class="challenge-panel">
+    <h2 id="challengeTitle" class="challenge-title">🔥 休み時間チャレンジ！</h2>
+    <div class="challenge-info" aria-live="polite">
+      <span>残り <strong id="challengeTime">5.0</strong> 秒</span>
+      <span><strong id="challengeCount">0</strong> / 10 回</span>
+    </div>
+    <button id="challengeTapButton" aria-label="チャレンジ用ボタン。スマホでは10回タップ、パソコンではスペースキーを10回押してください" aria-keyshortcuts="Space">ここを連打！<br><span style="font-size:.38em">PCはスペースキーでもOK</span></button>
+  </div>
+</div>
+
+<div id="resultOverlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+  <div class="result">
+    <div class="confetti">🎉✨🎊</div>
+    <h2 id="resultTitle">ゴール！</h2>
+    <div id="winnerText"></div>
+    <div id="rankingList" aria-label="最終順位"></div>
+    <button id="againButton" class="primary">もう一度あそぶ</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const GOAL = 45;
+  const playerColors = ['c0','c1','c2','c3','c4','c5'];
+
+  const events = [
+    { icon:'🏫', type:'start', display:'スタート', speech:'すたーと', move:0 },
+    { icon:'🥤', type:'bad', display:'水筒を玄関に忘れた！1マス戻る。', speech:'すいとうを げんかんに わすれました。ひとます もどります。', move:-1 },
+    { icon:'📓', type:'good', display:'先生に「ノートがきれい！」とほめられた。2マス進む！', speech:'せんせいに、のーとが きれいと ほめられました。にます すすみます。', move:2 },
+    { icon:'🧽', type:'bad', display:'消しゴムを落としたら机のずっと奥まで転がった。1マス戻る。', speech:'けしごむを おとしたら、つくえの ずっと おくまで ころがりました。ひとます もどります。', move:-1 },
+    { icon:'🍛', type:'good', display:'今日の給食は大好きなカレー！うれしくて2マス進む！', speech:'きょうの きゅうしょくは、だいすきな かれー。うれしくて にます すすみます。', move:2, sound:'happy' },
+    { icon:'📚', type:'bad', display:'宿題はやったのに家の机に置いてきた。2マス戻る。', speech:'しゅくだいは やったのに、いえの つくえに おいてきました。にます もどります。', move:-2 },
+    { icon:'🔔', type:'normal', display:'休み時間、チャイムぎりぎりまで遊んだ！もう1回サイコロ！', speech:'やすみじかん、ちゃいむ ぎりぎりまで あそびました。もういっかい さいころを ふれます。', extraTurn:true },
+    { icon:'🏐', type:'good', display:'体育のドッジボールでボールをキャッチ！2マス進む！', speech:'たいいくの どっじぼーるで、ぼーるを きゃっち。にます すすみます。', move:2, sound:'happy' },
+    { icon:'✏️', type:'rest', display:'鉛筆の芯が何回も折れて、ずっと鉛筆けずり。1回休み。', speech:'えんぴつの しんが なんかいも おれて、ずっと えんぴつけずり。いっかい やすみです。', skip:1 },
+    { icon:'📖', type:'good', display:'図書室でおもしろい本を見つけた！1マス進む！', speech:'としょしつで おもしろい ほんを みつけました。ひとます すすみます。', move:1 },
+    { icon:'✊', type:'good', display:'給食のおかわりじゃんけんに勝った！3マス進む！', speech:'きゅうしょくの おかわり じゃんけんに かちました。さんます すすみます。', move:3, sound:'powerup' },
+    { icon:'👕', type:'bad', display:'体育がある日に体操服を忘れた！3マス戻る。', speech:'たいいくが あるひに、たいそうふくを わすれました。さんます もどります。', move:-3 },
+    { icon:'🧹', type:'good', display:'掃除で机運びをたくさん手伝った。2マス進む！', speech:'そうじで つくえはこびを たくさん てつだいました。にます すすみます。', move:2 },
+    { icon:'💯', type:'good', display:'漢字テストで100点！3マス進む！', speech:'かんじ てすとで、ひゃくてん。さんます すすみます。', move:3, sound:'powerup' },
+    { icon:'🔥', type:'challenge', display:'休み時間チャレンジ！5秒以内に10回タップ、またはスペースキーを押せたら3マス進む！', speech:'やすみじかん ちゃれんじです。ごびょう いないに、すまほは じゅっかい たっぷ。ぱそこんは すぺーすきーを じゅっかい おせたら、さんます すすみます。', challenge:true, reward:3 },
+    { icon:'📄', type:'bad', display:'大事なプリントがランドセルの底でくしゃくしゃ。1マス戻る。', speech:'だいじな ぷりんとが、らんどせるの そこで くしゃくしゃ。ひとます もどります。', move:-1 },
+    { icon:'🙋', type:'good', display:'勇気を出して手をあげたら正解！2マス進む！', speech:'ゆうきを だして てを あげたら せいかい。にます すすみます。', move:2 },
+    { icon:'🥼', type:'normal', display:'給食当番のエプロンを前後反対に着ていた！今回はそのまま。', speech:'きゅうしょくとうばんの えぷろんを、まえうしろ はんたいに きていました。こんかいは そのままです。', move:0 },
+    { icon:'🏃', type:'good', display:'休み時間に友だちと鬼ごっこ！元気いっぱい2マス進む！', speech:'やすみじかんに ともだちと おにごっこ。げんきいっぱい にます すすみます。', move:2 },
+    { icon:'🧑‍🏫', type:'good', display:'黒板をきれいに消して先生にありがとうと言われた。1マス進む！', speech:'こくばんを きれいに けして、せんせいに ありがとうと いわれました。ひとます すすみます。', move:1 },
+    { icon:'➗', type:'good', display:'むずかしい算数の問題がぴったり解けた！2マス進む！', speech:'むずかしい さんすうの もんだいが ぴったり とけました。にます すすみます。', move:2 },
+    { icon:'📘', type:'bad', display:'チャイムが鳴ってから次の教科書を探し始めた。1マス戻る。', speech:'ちゃいむが なってから、つぎの きょうかしょを さがしはじめました。ひとます もどります。', move:-1 },
+    { icon:'🍮', type:'good', display:'給食に楽しみにしていたデザートが出た！2マス進む！', speech:'きゅうしょくに、たのしみに していた でざーとが でました。にます すすみます。', move:2, sound:'happy' },
+    { icon:'🔥', type:'challenge', display:'休み時間チャレンジ！5秒以内に10回タップ、またはスペースキーを押せたら3マス進む！', speech:'やすみじかん ちゃれんじです。ごびょう いないに、すまほは じゅっかい たっぷ。ぱそこんは すぺーすきーを じゅっかい おせたら、さんます すすみます。', challenge:true, reward:3 },
+    { icon:'🧴', type:'rest', display:'図工ののりが手につきすぎてベタベタ！1回休み。', speech:'ずこうの のりが、てに つきすぎて べたべた。いっかい やすみです。', skip:1 },
+    { icon:'🗒️', type:'good', display:'連絡帳に明日の持ち物をばっちり書いた！1マス進む！', speech:'れんらくちょうに、あしたの もちものを ばっちり かきました。ひとます すすみます。', move:1 },
+    { icon:'🏃‍♂️', type:'good', display:'体育のリレーでバトンがうまくつながった！3マス進む！', speech:'たいいくの りれーで、ばとんが うまく つながりました。さんます すすみます。', move:3, sound:'powerup' },
+    { icon:'✅', type:'good', display:'宿題を早めに終わらせて自由時間ができた！2マス進む！', speech:'しゅくだいを はやめに おわらせて、じゆうじかんが できました。にます すすみます。', move:2 },
+    { icon:'👟', type:'bad', display:'上履き袋を学校に置いてきたことを帰ってから思い出した。2マス戻る。', speech:'うわばきぶくろを がっこうに おいてきたことを、かえってから おもいだしました。にます もどります。', move:-2 },
+    { icon:'🎵', type:'good', display:'音楽で好きな曲をみんなと演奏できた！2マス進む！', speech:'おんがくで すきな きょくを、みんなと えんそう できました。にます すすみます。', move:2 },
+    { icon:'🔥', type:'challenge', display:'休み時間チャレンジ！5秒以内に10回タップ、またはスペースキーを押せたら3マス進む！', speech:'やすみじかん ちゃれんじです。ごびょう いないに、すまほは じゅっかい たっぷ。ぱそこんは すぺーすきーを じゅっかい おせたら、さんます すすみます。', challenge:true, reward:3 },
+    { icon:'📗', type:'bad', display:'教科書を開いたら、みんなと違うページだった！1マス戻る。', speech:'きょうかしょを ひらいたら、みんなと ちがう ぺーじでした。ひとます もどります。', move:-1 },
+    { icon:'⭐', type:'good', display:'係の仕事を忘れずにできた！2マス進む！', speech:'かかりの しごとを わすれずに できました。にます すすみます。', move:2 },
+    { icon:'⚽', type:'normal', display:'休み時間に使いたかったボールをゲット！もう1回サイコロ！', speech:'やすみじかんに つかいたかった ぼーるを げっと。もういっかい さいころを ふれます。', extraTurn:true },
+    { icon:'🥛', type:'bad', display:'給食の牛乳を開けたらちょっとこぼした。1マス戻る。', speech:'きゅうしょくの ぎゅうにゅうを あけたら、ちょっと こぼしました。ひとます もどります。', move:-1 },
+    { icon:'🔍', type:'good', display:'テストを見直したら間違いを発見！直して3マス進む！', speech:'てすとを みなおしたら、まちがいを はっけん。なおして さんます すすみます。', move:3, sound:'powerup' },
+    { icon:'🔥', type:'challenge', display:'休み時間チャレンジ！5秒以内に10回タップ、またはスペースキーを押せたら3マス進む！', speech:'やすみじかん ちゃれんじです。ごびょう いないに、すまほは じゅっかい たっぷ。ぱそこんは すぺーすきーを じゅっかい おせたら、さんます すすみます。', challenge:true, reward:3 },
+    { icon:'✨', type:'good', display:'掃除のぞうきんがけで床がピカピカ！2マス進む！', speech:'そうじの ぞうきんがけで、ゆかが ぴかぴか。にます すすみます。', move:2 },
+    { icon:'📃', type:'bad', display:'帰りの会でもらったプリントを机の中に忘れた。2マス戻る。', speech:'かえりの かいで もらった ぷりんとを、つくえの なかに わすれました。にます もどります。', move:-2 },
+    { icon:'🌧️', type:'good', display:'雨の日の休み時間、教室の遊びが思ったより盛り上がった！1マス進む！', speech:'あめのひの やすみじかん。きょうしつの あそびが、おもったより もりあがりました。ひとます すすみます。', move:1 },
+    { icon:'📝', type:'good', display:'先生の「ここ大事！」をしっかりメモした。2マス進む！', speech:'せんせいの、ここ だいじを しっかり めもしました。にます すすみます。', move:2 },
+    { icon:'👟', type:'bad', display:'体育館シューズを忘れて教室まで取りに戻った。2マス戻る。', speech:'たいいくかん しゅーずを わすれて、きょうしつまで とりに もどりました。にます もどります。', move:-2 },
+    { icon:'🔥', type:'challenge', display:'休み時間チャレンジ！5秒以内に10回タップ、またはスペースキーを押せたら3マス進む！', speech:'やすみじかん ちゃれんじです。ごびょう いないに、すまほは じゅっかい たっぷ。ぱそこんは すぺーすきーを じゅっかい おせたら、さんます すすみます。', challenge:true, reward:3 },
+    { icon:'😱', type:'bad', display:'宿題が終わったと思ったら、プリントの裏にも問題があった！5マス戻る。', speech:'しゅくだいが おわったと おもったら、ぷりんとの うらにも もんだいが ありました。ごます もどります。', move:-5 },
+    { icon:'🚨', type:'incident', display:'大事件発生！席替えみたいに全員の場所を入れ換える！', speech:'だいじけん はっせい。せきがえ みたいに、ぜんいんの ばしょを いれかえます。', incident:true, sound:'incident' },
+    { icon:'🏁', type:'goal', display:'ゴール！今日も学校生活をがんばった！', speech:'ごーる。きょうも がっこうせいかつを がんばりました。', move:0 }
+  ];
+
+  const els = {
+    startScreen: document.getElementById('startScreen'),
+    gameScreen: document.getElementById('gameScreen'),
+    startButton: document.getElementById('startButton'),
+    diceButton: document.getElementById('diceButton'),
+    soundButton: document.getElementById('soundButton'),
+    turnName: document.getElementById('turnName'),
+    eventText: document.getElementById('eventText'),
+    subline: document.getElementById('subline'),
+    board: document.getElementById('board'),
+    statusGrid: document.getElementById('statusGrid'),
+    resultOverlay: document.getElementById('resultOverlay'),
+    winnerText: document.getElementById('winnerText'),
+    rankingList: document.getElementById('rankingList'),
+    againButton: document.getElementById('againButton'),
+    challengeOverlay: document.getElementById('challengeOverlay'),
+    challengeTapButton: document.getElementById('challengeTapButton'),
+    challengeTime: document.getElementById('challengeTime'),
+    challengeCount: document.getElementById('challengeCount'),
+    speechMode: document.getElementById('speechMode'),
+    speechRate: document.getElementById('speechRate')
+  };
+
+  let players = [];
+  let currentPlayer = 0;
+  let busy = false;
+  let speechEnabled = true;
+  let speechRate = 1;
+  let audioCtx = null;
+  let gameOver = false;
+  let extraRollWithoutEvent = false;
+  let challengeActive = false;
+  let challengeTapHandler = null;
+
+  function initAudio(){
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+  }
+
+  function tone(freq, duration=.12, type='sine', volume=.08, delay=0){
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime + delay;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(volume, now + .02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + duration + .03);
+  }
+
+  function playDice(){
+    [240,310,380,450,520,610].forEach((f,i)=>tone(f,.07,'square',.035,i*.055));
+  }
+  function playStep(stepIndex){
+    const notes=[440,494,523,587,659,698];
+    tone(notes[stepIndex%notes.length],.10,'sine',.06,0);
+  }
+  function playGood(){ [523,659,784].forEach((f,i)=>tone(f,.18,'triangle',.07,i*.09)); }
+  function playBad(){ [330,277,220].forEach((f,i)=>tone(f,.18,'sawtooth',.05,i*.10)); }
+  function playSkip(){ tone(180,.35,'sawtooth',.06); }
+  function playExplosion(){
+    [180,120,75].forEach((f,i)=>tone(f,.42,'sawtooth',.11,i*.08));
+  }
+  function playFall(){
+    [700,560,430,320,220,140].forEach((f,i)=>tone(f,.10,'sine',.07,i*.075));
+  }
+  function playThunder(){
+    [95,70,55].forEach((f,i)=>tone(f,.48,'sawtooth',.09,i*.12));
+  }
+  function playRelax(){
+    [392,494,587].forEach((f,i)=>tone(f,.25,'sine',.045,i*.16));
+  }
+  function playPowerUp(){
+    [392,494,587,784].forEach((f,i)=>tone(f,.16,'square',.045,i*.08));
+  }
+  function playHappy(){
+    [523,659,784,1047].forEach((f,i)=>tone(f,.13,'triangle',.06,i*.07));
+  }
+  function playIncident(){
+    [220,330,165,440,110].forEach((f,i)=>tone(f,.16,'sawtooth',.075,i*.09));
+  }
+  function playEventSound(ev){
+    if(ev.sound==='explosion') return playExplosion();
+    if(ev.sound==='fall') return playFall();
+    if(ev.sound==='thunder') return playThunder();
+    if(ev.sound==='relax') return playRelax();
+    if(ev.sound==='powerup') return playPowerUp();
+    if(ev.sound==='happy') return playHappy();
+    if(ev.sound==='incident') return playIncident();
+    if(ev.type==='bad') return playBad();
+    if(ev.type==='rest') return playSkip();
+    return playGood();
+  }
+  function playGoal(){
+    [523,659,784,1047,1319].forEach((f,i)=>tone(f,.28,'triangle',.09,i*.13));
+    [392,523,659,784].forEach((f,i)=>tone(f,.45,'sine',.035,.45+i*.08));
+  }
+
+  function wait(ms){ return new Promise(resolve=>setTimeout(resolve,ms)); }
+
+  function speak(text, interrupt=true){
+    return new Promise(resolve => {
+      if (!speechEnabled || !('speechSynthesis' in window)) { resolve(); return; }
+      if (interrupt) window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      let finished = false;
+      const done = () => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(fallback);
+        resolve();
+      };
+      const fallback = setTimeout(done, Math.max(3500, text.length * 220));
+      u.lang = 'ja-JP';
+      u.rate = speechRate;
+      u.pitch = 1;
+      u.volume = 1;
+      u.onend = done;
+      u.onerror = done;
+      window.speechSynthesis.speak(u);
+    });
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  }
+
+  function renderBoard(){
+    els.board.innerHTML='';
+    const order=[];
+    const cols = window.innerWidth >= 700 ? 10 : 5;
+    for(let row=0; row<Math.ceil((GOAL+1)/cols); row++){
+      const rowNums=[];
+      for(let c=0;c<cols;c++){
+        const n=row*cols+c;
+        if(n<=GOAL) rowNums.push(n);
+      }
+      if(row%2===1) rowNums.reverse();
+      order.push(...rowNums);
+    }
+    order.forEach(n=>{
+      const ev=events[n];
+      const sq=document.createElement('div');
+      sq.className=`square ${ev.type}`;
+      sq.dataset.pos=String(n);
+      sq.setAttribute('aria-label',`${n}マス目 ${ev.display}`);
+      sq.innerHTML=`<div class="num">${n===0?'START':n===GOAL?'GOAL':n}</div><div class="icon" aria-hidden="true">${ev.icon}</div><div class="tokens"></div>`;
+      els.board.appendChild(sq);
+    });
+    renderTokens();
+  }
+
+  function renderTokens(){
+    document.querySelectorAll('.tokens').forEach(x=>x.innerHTML='');
+    players.forEach((p,i)=>{
+      const holder=document.querySelector(`.square[data-pos="${p.pos}"] .tokens`);
+      if(!holder) return;
+      const t=document.createElement('div');
+      t.className=`token ${playerColors[i]}`;
+      t.title=p.name;
+      t.textContent=String(i+1);
+      t.setAttribute('aria-label',`${p.name}さん`);
+      holder.appendChild(t);
+    });
+  }
+
+  function renderStatus(){
+    els.statusGrid.innerHTML='';
+    players.forEach((p,i)=>{
+      const card=document.createElement('div');
+      card.className='status-card'+(i===currentPlayer?' current':'');
+      card.innerHTML=`<div class="player-name">${i+1}. ${escapeHtml(p.name)}</div><div class="progress">進んだ合計：${p.pos}マス${p.skip>0?'／次の番は休み':''}</div>`;
+      els.statusGrid.appendChild(card);
+    });
+  }
+
+  function updateTurnUI(){
+    const p=players[currentPlayer];
+    els.turnName.textContent=`${p.name}さんの番です`;
+    els.subline.textContent=`ゴールまであと${Math.max(0,GOAL-p.pos)}マス`;
+    renderStatus();
+  }
+
+  function setMessage(text){ els.eventText.textContent=text; }
+
+  async function beginTurn(){
+    if(gameOver) return;
+    const p=players[currentPlayer];
+    updateTurnUI();
+    if(p.skip>0){
+      busy=true;
+      els.diceButton.disabled=true;
+      p.skip--;
+      const msg=`${p.name}さんは、1回休みです。`;
+      setMessage(msg);
+      playSkip();
+      await speak(`${p.name}さんは、いっかい やすみです。`);
+      await wait(500);
+      nextPlayer();
+      busy=false;
+      els.diceButton.disabled=false;
+      await beginTurn();
+      return;
+    }
+    setMessage(`${p.name}さんの番です。`);
+    els.diceButton.disabled=false;
+    await speak(`${p.name}さんの ばんです。`);
+  }
+
+  function nextPlayer(){ currentPlayer=(currentPlayer+1)%players.length; }
+
+  async function movePlayer(p, amount, announceSteps=true){
+    const direction=amount>=0?1:-1;
+    const steps=Math.abs(amount);
+    for(let i=0;i<steps;i++){
+      const next=Math.max(0,Math.min(GOAL,p.pos+direction));
+      if(next===p.pos) break;
+      p.pos=next;
+      renderTokens();
+      renderStatus();
+      if(announceSteps) playStep(i);
+      await wait(260);
+      if(p.pos===GOAL) break;
+    }
+  }
+
+  async function runTapChallenge(){
+    const TARGET=10;
+    const LIMIT_MS=5000;
+    let count=0;
+    let finished=false;
+    let resolveResult;
+    const resultPromise=new Promise(resolve=>{ resolveResult=resolve; });
+
+    els.challengeCount.textContent='0';
+    els.challengeTime.textContent='5.0';
+    els.challengeTapButton.textContent='準備中…';
+    els.challengeOverlay.classList.remove('hidden');
+    challengeActive=true;
+    els.challengeTapButton.focus({preventScroll:true});
+    await speak('じゅんび。さん、に、いち、すたーと。');
+    els.challengeTapButton.innerHTML='ここを連打！<br><span style="font-size:.38em">PCはスペースキーでもOK</span>';
+
+    const start=performance.now();
+    const finish=(success)=>{
+      if(finished) return;
+      finished=true;
+      challengeActive=false;
+      clearInterval(timer);
+      if(challengeTapHandler){
+        els.challengeTapButton.removeEventListener('click',challengeTapHandler);
+        challengeTapHandler=null;
+      }
+      els.challengeTapButton.disabled=true;
+      els.challengeTapButton.textContent=success?'成功！':'時間切れ！';
+      if(success) playPowerUp(); else playBad();
+      setTimeout(()=>{
+        els.challengeOverlay.classList.add('hidden');
+        els.challengeTapButton.disabled=false;
+        resolveResult(success);
+      },500);
+    };
+
+    challengeTapHandler=()=>{
+      if(finished) return;
+      count++;
+      els.challengeCount.textContent=String(count);
+      tone(520 + Math.min(count,10)*35,.06,'square',.04);
+      if('vibrate' in navigator) navigator.vibrate(20);
+      if(count>=TARGET) finish(true);
+    };
+    els.challengeTapButton.addEventListener('click',challengeTapHandler);
+
+    const timer=setInterval(()=>{
+      const remaining=Math.max(0,LIMIT_MS-(performance.now()-start));
+      els.challengeTime.textContent=(remaining/1000).toFixed(1);
+      if(remaining<=0) finish(false);
+    },50);
+
+    return resultPromise;
+  }
+
+  function swapAllPlayerPositions(){
+    if(players.length <= 1) return;
+    const oldPositions=players.map(player=>player.pos);
+    const offset=1+Math.floor(Math.random()*(players.length-1));
+    players.forEach((player,index)=>{
+      player.pos=oldPositions[(index+offset)%players.length];
+    });
+    renderTokens();
+    renderStatus();
+  }
+
+  function allPositionsSpeech(){
+    return players.map(player=>`${player.name}さんは、${player.pos}ますめ`).join('。');
+  }
+
+  function allPositionsDisplay(){
+    return players.map(player=>`${player.name}さん：${player.pos}マス目`).join('／');
+  }
+
+  async function resolveSquare(p){
+    if(p.pos===GOAL){ await finishGame(p); return 'gameover'; }
+    const ev=events[p.pos];
+    setMessage(ev.display);
+    playEventSound(ev);
+    await speak(ev.speech);
+
+    if(ev.skip){ p.skip+=ev.skip; }
+    if(ev.incident){
+      await wait(450);
+      swapAllPlayerPositions();
+      const display=`入れ換え完了！ ${allPositionsDisplay()}`;
+      setMessage(display);
+      els.subline.textContent='全員の場所を入れ換えました。次の人の番へ進みます。';
+      await speak(`いれかえ かんりょう。${allPositionsSpeech()}。げーむを さいかいします。`);
+      return 'next';
+    }
+    if(ev.challenge){
+      const success=await runTapChallenge();
+      if(success){
+        setMessage(`チャレンジ成功！${ev.reward}マス進みます！`);
+        await speak(`ちゃれんじ せいこう。${ev.reward}ます すすみます。`);
+        await movePlayer(p,ev.reward,true);
+        if(p.pos===GOAL){ await finishGame(p); return 'gameover'; }
+      }else{
+        setMessage('チャレンジ失敗。今回はそのままです。');
+        await speak('ちゃれんじ しっぱい。こんかいは そのままです。');
+      }
+    }else if(ev.reset){
+      await wait(650);
+      p.pos=0;
+      renderTokens();
+      renderStatus();
+    }else if(ev.move){
+      await movePlayer(p,ev.move,true);
+      if(p.pos===GOAL){ await finishGame(p); return 'gameover'; }
+    }
+
+    els.subline.textContent=`進んだ合計：${p.pos}マス／ゴールまであと${GOAL-p.pos}マス`;
+    await speak(`ごうけい、${p.pos}ますです。`);
+    renderStatus();
+    return ev.extraTurn?'extra':'next';
+  }
+
+  async function rollDice(){
+    if(busy||gameOver) return;
+    initAudio();
+    busy=true;
+    els.diceButton.disabled=true;
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    const p=players[currentPlayer];
+    const isExtraRoll = extraRollWithoutEvent;
+    extraRollWithoutEvent = false;
+    playDice();
+    if ('vibrate' in navigator) navigator.vibrate(45);
+
+    let shown=1;
+    for(let i=0;i<10;i++){
+      shown=1+Math.floor(Math.random()*6);
+      els.diceButton.innerHTML=`<span class="dice-face">${['','⚀','⚁','⚂','⚃','⚄','⚅'][shown]}</span> ${shown}`;
+      await wait(70+i*6);
+    }
+    const dice=1+Math.floor(Math.random()*6);
+    els.diceButton.innerHTML=`<span class="dice-face">${['','⚀','⚁','⚂','⚃','⚄','⚅'][dice]}</span> ${dice}`;
+    setMessage(`出た目は${dice}です。${dice}マス進みます。`);
+    await speak(`でためは、${dice}です。${dice}ます すすみます。`);
+    await movePlayer(p,dice,true);
+
+    if(p.pos===GOAL){ await finishGame(p); busy=false; return; }
+
+    if(isExtraRoll){
+      setMessage(`追加のサイコロではイベントは起きません。進んだ合計は${p.pos}マスです。`);
+      els.subline.textContent=`進んだ合計：${p.pos}マス／ゴールまであと${GOAL-p.pos}マス`;
+      await speak(`ついかの さいころは、いどうだけです。ごうけい、${p.pos}ますです。`);
+      nextPlayer();
+    }else{
+      const result=await resolveSquare(p);
+      if(result==='gameover'){ busy=false; return; }
+
+      if(result==='extra'){
+        extraRollWithoutEvent = true;
+        setMessage(`${p.name}さんは、もう1回サイコロをふれます！`);
+        await speak(`もういっかいです。`);
+      }else{
+        nextPlayer();
+      }
+    }
+
+    els.diceButton.innerHTML='<span class="dice-face">🎲</span>サイコロをふる';
+    busy=false;
+    els.diceButton.disabled=false;
+    await beginTurn();
+  }
+
+  function makeRanking(){
+    const sorted=players
+      .map((player,index)=>({player,index}))
+      .sort((a,b)=>b.player.pos-a.player.pos || a.index-b.index);
+
+    let previousPos=null;
+    let previousRank=0;
+    return sorted.map((item,index)=>{
+      const rank=item.player.pos===previousPos ? previousRank : index+1;
+      previousPos=item.player.pos;
+      previousRank=rank;
+      return {rank,name:item.player.name,pos:item.player.pos};
+    });
+  }
+
+  async function finishGame(p){
+    gameOver=true;
+    busy=true;
+    els.diceButton.disabled=true;
+    playGoal();
+    if ('vibrate' in navigator) navigator.vibrate([100,60,100,60,220]);
+    setMessage(`${p.name}さん、ゴール！ ゲーム終了です。`);
+
+    const ranking=makeRanking();
+    els.winnerText.textContent=`${p.name}さんがゴール！ 最終順位`;
+    els.rankingList.innerHTML=ranking.map(row=>
+      `<div class="ranking-row ${row.rank===1?'rank1':''}">`+
+      `<div class="ranking-rank">${row.rank}位</div>`+
+      `<div class="ranking-name">${escapeHtml(row.name)}さん</div>`+
+      `<div class="ranking-pos">${row.pos}マス</div>`+
+      `</div>`
+    ).join('');
+    els.resultOverlay.classList.remove('hidden');
+
+    const rankingSpeech=ranking.map(row=>`${row.rank}い、${row.name}さん、${row.pos}ます`).join('。');
+    await speak(`${p.name}さん、ごーる。げーむ しゅうりょうです。さいしゅう じゅんい。${rankingSpeech}。`);
+  }
+
+  async function enterFullscreen(){
+    const target=document.documentElement;
+    try{
+      if(document.fullscreenElement || document.webkitFullscreenElement) return;
+      if(target.requestFullscreen){
+        await target.requestFullscreen({navigationUI:'hide'});
+      }else if(target.webkitRequestFullscreen){
+        target.webkitRequestFullscreen();
+      }
+    }catch(_e){
+      // フルスクリーン非対応の端末では、100dvh表示のまま続ける。
+    }
+  }
+
+  async function startGame(){
+    enterFullscreen();
+    const names=[1,2,3,4,5,6].map(i=>document.getElementById(`name${i}`).value.trim()).filter(Boolean);
+    if(names.length===0){
+      document.getElementById('name1').value='プレイヤー1';
+      names.push('プレイヤー1');
+    }
+    initAudio();
+    speechEnabled=els.speechMode.value==='on';
+    speechRate=Number(els.speechRate.value)||1;
+    players=names.map(name=>({name,pos:0,skip:0}));
+    currentPlayer=0;
+    busy=false;
+    gameOver=false;
+    extraRollWithoutEvent=false;
+    els.resultOverlay.classList.add('hidden');
+    els.challengeOverlay.classList.add('hidden');
+    challengeActive=false;
+    els.rankingList.innerHTML='';
+    els.startScreen.classList.remove('active');
+    els.gameScreen.classList.add('active');
+    renderBoard();
+    renderStatus();
+    els.soundButton.setAttribute('aria-pressed',String(speechEnabled));
+    els.soundButton.textContent=speechEnabled?'🔊 読み上げ':'🔇 読み上げなし';
+    await beginTurn();
+  }
+
+  function resetToStart(){
+    if('speechSynthesis' in window) speechSynthesis.cancel();
+    els.resultOverlay.classList.add('hidden');
+    els.challengeOverlay.classList.add('hidden');
+    challengeActive=false;
+    els.rankingList.innerHTML='';
+    els.gameScreen.classList.remove('active');
+    els.startScreen.classList.add('active');
+    gameOver=false;
+    extraRollWithoutEvent=false;
+    busy=false;
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  els.startButton.addEventListener('click',startGame);
+  els.diceButton.addEventListener('click',rollDice);
+  els.againButton.addEventListener('click',resetToStart);
+  els.soundButton.addEventListener('click',()=>{
+    speechEnabled=!speechEnabled;
+    if(!speechEnabled && 'speechSynthesis' in window) speechSynthesis.cancel();
+    els.soundButton.setAttribute('aria-pressed',String(speechEnabled));
+    els.soundButton.textContent=speechEnabled?'🔊 読み上げ':'🔇 読み上げなし';
+    if(speechEnabled) speak('よみあげを おんに しました。');
+  });
+  window.addEventListener('keydown',e=>{
+    if(e.code!=='Space') return;
+    e.preventDefault();
+    if(e.repeat) return;
+    if(challengeActive){
+      els.challengeTapButton.click();
+      return;
+    }
+    if(els.gameScreen.classList.contains('active')){
+      rollDice();
+    }
+  });
+  window.addEventListener('resize',()=>{
+    if(els.gameScreen.classList.contains('active')) renderBoard();
+  });
+})();
+</script>
 </body>
 </html>
